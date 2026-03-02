@@ -1,0 +1,146 @@
+{
+  "projectType": "framework",
+  "projectName": "Paper",
+  "projectDescription": "The most widely used, high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies",
+  "theme": "aspen",
+  "primaryColor": "#3B82F6",
+  "lightColor": "#60A5FA",
+  "darkColor": "#1E40AF",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "features",
+              "comparison"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/configuration"
+            ]
+          },
+          {
+            "group": "Server Administration",
+            "pages": [
+              "administration/server-properties",
+              "administration/paper-configuration",
+              "administration/world-configuration",
+              "administration/performance-tuning",
+              "administration/commands"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/patch-system",
+              "concepts/events",
+              "concepts/configuration-system"
+            ]
+          },
+          {
+            "group": "Plugin Development",
+            "pages": [
+              "plugins/getting-started",
+              "plugins/plugin-yml",
+              "plugins/lifecycle",
+              "plugins/events",
+              "plugins/commands",
+              "plugins/configuration",
+              "plugins/testing"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/overview",
+              "api/bukkit-api",
+              "api/paper-api",
+              "api/adventure",
+              "api/events",
+              "api/entities",
+              "api/world",
+              "api/registry"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "contributing/getting-started",
+              "contributing/patching",
+              "contributing/pull-requests",
+              "contributing/formatting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Advanced",
+        "groups": [
+          {
+            "group": "Building from Source",
+            "pages": [
+              "advanced/building",
+              "advanced/gradle-tasks",
+              "advanced/development-setup"
+            ]
+          },
+          {
+            "group": "Optimization",
+            "pages": [
+              "optimization/server-performance",
+              "optimization/chunk-loading",
+              "optimization/entity-performance",
+              "optimization/network"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/maven",
+              "integration/gradle",
+              "integration/publishing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "High-performance Minecraft server implementation",
+    "Extensive plugin API (Bukkit + Paper)",
+    "Per-file and feature patch system",
+    "World-specific configuration",
+    "Event system for gameplay customization",
+    "Adventure text components and chat API",
+    "Entity AI customization",
+    "Registry and data-driven content",
+    "Performance optimizations for chunk loading and entities",
+    "Comprehensive configuration system"
+  ],
+  "publicApiSurface": [
+    "org.bukkit.Bukkit",
+    "org.bukkit.Server",
+    "org.bukkit.plugin.java.JavaPlugin",
+    "org.bukkit.event.Event",
+    "org.bukkit.entity.Player",
+    "org.bukkit.World",
+    "org.bukkit.command.Command",
+    "io.papermc.paper.event.*",
+    "io.papermc.paper.registry.RegistryAccess",
+    "io.papermc.paper.configuration.GlobalConfiguration",
+    "io.papermc.paper.configuration.WorldConfiguration",
+    "io.papermc.paper.plugin.configuration.PluginMeta",
+    "io.papermc.paper.entity.ai.*",
+    "io.papermc.paper.datapack.DatapackManager",
+    "net.kyori.adventure.text.Component"
+  ]
+}
