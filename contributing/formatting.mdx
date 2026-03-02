@@ -1,0 +1,335 @@
+---
+title: Code Formatting and Style
+description: Code formatting requirements and style guide for Paper contributions
+---
+
+Proper code formatting is essential for maintaining Paper's codebase. This guide covers all formatting requirements, including Paper-specific markers, imports, and style conventions.
+
+## Paper Code Markers
+
+All modifications to Vanilla Minecraft files must be marked with Paper comments. These markers help track changes across files and maintain them long-term.
+
+<Warning>
+  Paper code markers are **required** for all Vanilla file modifications. They remain crucial even a decade later for understanding what changed and why.
+</Warning>
+
+### Comment Format
+
+Every Paper modification needs a descriptive comment:
+
+```java
+// Paper start - <COMMIT DESCRIPTION>
+```
+
+The description should explain:
+- **Why** the change was made
+- What it was before
+- What the change does
+
+You can add additional details after a semicolon (`;`) or on the next line.
+
+### Single-Line Changes
+
+For one-line modifications, add the marker at the end:
+
+```java
+entity.getWorld().dontBeStupid(); // Paper - Move away from beStupid()
+```
+
+### Multi-Line Changes
+
+For multi-line modifications, wrap the code with start/end markers:
+
+```java
+// Paper start - Use plugin-set spawn
+// entity.getWorld().explode(entity.getWorld().getSpawn());
+Location spawnLocation = ((CraftWorld) entity.getWorld()).getSpawnLocation();
+entity.getWorld().explode(new BlockPosition(spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ()));
+// Paper end - Use plugin-set spawn
+```
+
+<Note>
+  The end marker should use the **same description** as the start marker for easy matching.
+</Note>
+
+### Complete Example
+
+```java
+entity.getWorld().dontBeStupid(); // Paper - Move away from beStupid()
+entity.getFriends().forEach(Entity::explode);
+entity.updateFriends();
+
+// Paper start - Use plugin-set spawn
+// entity.getWorld().explode(entity.getWorld().getSpawn());
+Location spawnLocation = ((CraftWorld) entity.getWorld()).getSpawnLocation();
+entity.getWorld().explode(new BlockPosition(spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ()));
+// Paper end - Use plugin-set spawn
+```
+
+## Import Guidelines
+
+Paper has specific rules for imports in Vanilla Minecraft classes to prevent patch conflicts.
+
+### Use Fully Qualified Names (FQN)
+
+<Warning>
+  When adding new types to a Vanilla class, use the **fully qualified class name** instead of adding imports to the top of the file.
+</Warning>
+
+**Correct approach**:
+
+```java
+import net.minecraft.server.MinecraftServer;
+// Don't add new imports here
+
+public class SomeVanillaClass {
+    public final org.bukkit.Location newLocation; // Paper - add location
+}
+```
+
+**Why?** This prevents future patch conflicts in the import section.
+
+### When to Add Imports
+
+You can add an import with a comment if:
+- The type is used a **significant number** of times
+- Using FQN would make the code too verbose
+
+For only a couple of uses, always prefer FQN.
+
+## Java Style Guide
+
+Paper generally follows the Oracle Java style (default in most IDEs) with a few modifications:
+
+### Line Length
+
+- **80 characters is not a hard limit**
+- Go over 80 lines if it improves readability
+- Exception: Some Spigot-related files have stricter limits
+
+### Match Surrounding Code
+
+<Info>
+  When in doubt, or if the surrounding code uses a clearly different style, **match the existing style**.
+</Info>
+
+### Avoid `var` Keyword
+
+<Warning>
+  Usage of the `var` keyword is **discouraged**.
+</Warning>
+
+**Why?**
+- Makes patch files harder to read
+- Can cause confusion during updates due to changed return types
+
+**Exception**: Use `var` only when:
+- The line would be extremely long without it
+- It's filled with hard-to-parse generics
+- The base type is already obvious from context
+
+**Example of acceptable `var` usage**:
+
+```java
+// Acceptable - extremely verbose generic type
+var complexMap = new ConcurrentHashMap<ResourceLocation, Map<String, List<ComplexType>>>();
+
+// Not acceptable - simple type
+var player = event.getPlayer(); // Use Player player = ...
+```
+
+## Nullability Annotations
+
+Paper is transitioning between nullability annotation libraries:
+
+### For New Classes You Create
+
+Use `org.jspecify.annotations`:
+
+```java
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+@NullMarked // Types are non-null by default
+public class MyNewClass {
+    private @Nullable String optionalValue;
+    private String requiredValue; // Non-null by default
+    
+    public @Nullable String getOptional() {
+        return this.optionalValue;
+    }
+}
+```
+
+<Info>
+  See the [JSpecify documentation](https://jspecify.dev/docs/user-guide/) for advanced usage on generics and arrays.
+</Info>
+
+### For Existing Classes
+
+Keep using `org.jetbrains.annotations`:
+
+```java
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+public class ExistingClass {
+    public void doSomething(@NotNull Player player, @Nullable String message) {
+        // ...
+    }
+}
+```
+
+<Note>
+  These will be migrated to JSpecify later. Don't convert them yourself.
+</Note>
+
+## API Validation with Preconditions
+
+When validating API inputs or object state, use the `Preconditions` class from Guava.
+
+### Checking Method Arguments
+
+Use `Preconditions.checkArgument()` to validate method parameters:
+
+```java
+@Override
+public void sendMessage(Player player, Component message) {
+    Preconditions.checkArgument(player != null, "player cannot be null");
+    Preconditions.checkArgument(player.isOnline(), "player %s must be online", player.getName());
+    Preconditions.checkArgument(message != null, "message cannot be null");
+    // rest of code
+}
+```
+
+<Warning>
+  **Do not use `Preconditions.checkNotNull()`**—it throws `NullPointerException`, making it harder to distinguish between internal errors and invalid arguments.
+</Warning>
+
+**Throws**: `IllegalArgumentException` when conditions fail
+
+### Checking Object State
+
+Use `Preconditions.checkState()` to validate object state inside methods:
+
+```java
+private Player player;
+
+@Override
+public void sendMessage(Component message) {
+    Preconditions.checkArgument(message != null, "message cannot be null");
+    Preconditions.checkState(this.player != null, "player cannot be null");
+    Preconditions.checkState(this.player.isOnline(), "player %s must be online", this.player.getName());
+    // rest of code
+}
+```
+
+**Throws**: `IllegalStateException` when conditions fail
+
+### Preconditions Best Practices
+
+- Use `checkArgument()` for validating **input parameters**
+- Use `checkState()` for validating **object state**
+- Include descriptive error messages
+- Use format strings (`%s`) for dynamic values
+
+## Obfuscation Helpers
+
+Obfuscation helpers improve readability for unmapped variables or poorly-named parameters.
+
+### Purpose
+
+- Make code more readable
+- Aid future maintenance
+- Should be easy for the JVM to inline
+
+### Example
+
+```java
+double d0 = entity.getX(); final double fromX = d0; // Paper - OBFHELPER
+double d1 = entity.getZ(); final double fromZ = d1; // Paper - OBFHELPER
+// ...
+this.someMethod(fromX, fromZ); // Paper
+```
+
+<Info>
+  Use your best judgment and do what fits best in your situation. The goal is always readability and maintainability.
+</Info>
+
+## Formatting Checklist
+
+Before submitting your PR, verify:
+
+- [ ] All Vanilla file changes have Paper start/end markers
+- [ ] Markers include descriptive commit descriptions
+- [ ] End markers match their corresponding start markers
+- [ ] New types in Vanilla classes use FQN instead of imports
+- [ ] Code follows Oracle Java style (or matches surrounding code)
+- [ ] `var` keyword is avoided unless absolutely necessary
+- [ ] Correct nullability annotations are used
+- [ ] API validation uses appropriate `Preconditions` methods
+- [ ] Obfuscation helpers are used where they improve readability
+
+## Common Mistakes
+
+### Missing Paper Markers
+
+```java
+// ❌ Wrong - no Paper marker
+public final Location spawnLocation;
+
+// ✅ Correct
+public final org.bukkit.Location spawnLocation; // Paper - custom spawn location
+```
+
+### Adding Unnecessary Imports
+
+```java
+// ❌ Wrong - new import added
+import org.bukkit.Location;
+
+public class VanillaClass {
+    public final Location spawn; // Paper
+}
+
+// ✅ Correct - FQN used
+public class VanillaClass {
+    public final org.bukkit.Location spawn; // Paper - custom spawn
+}
+```
+
+### Mismatched Start/End Markers
+
+```java
+// ❌ Wrong - descriptions don't match
+// Paper start - Use plugin-set spawn
+Location spawn = getCustomSpawn();
+// Paper end - Custom spawn location
+
+// ✅ Correct - identical descriptions
+// Paper start - Use plugin-set spawn
+Location spawn = getCustomSpawn();
+// Paper end - Use plugin-set spawn
+```
+
+### Using checkNotNull
+
+```java
+// ❌ Wrong - throws NullPointerException
+Preconditions.checkNotNull(player, "player cannot be null");
+
+// ✅ Correct - throws IllegalArgumentException
+Preconditions.checkArgument(player != null, "player cannot be null");
+```
+
+## IDE Configuration
+
+Most Java IDEs are pre-configured with Oracle Java style. For best results:
+
+1. **IntelliJ IDEA**: Use the default Java code style
+2. **Eclipse**: Use the default Java formatter
+3. **VS Code**: Install the Java extension pack
+
+<Note>
+  Paper may apply minor formatting fixes during PR review, but following these guidelines reduces review time.
+</Note>

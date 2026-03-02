@@ -1,0 +1,520 @@
+---
+title: 'Performance Tuning'
+description: 'Optimize your Paper server for maximum performance'
+---
+
+Paper includes numerous performance optimizations over vanilla Minecraft. This guide helps you configure your server for optimal performance based on your specific needs.
+
+## Quick Performance Checklist
+
+<Steps>
+  <Step title="Use Appropriate Java Version">
+    Paper requires Java 21 or newer. Using the latest Java version provides performance improvements.
+    
+    ```bash
+    java -version
+    ```
+    
+    <Tip>Adopt OpenJDK, Amazon Corretto, or other modern JVM distributions for best results.</Tip>
+  </Step>
+
+  <Step title="Optimize JVM Flags">
+    Use Aikar's recommended JVM flags for Minecraft servers:
+    
+    ```bash
+    java -Xms10G -Xmx10G -XX:+AlwaysPreTouch -XX:+DisableExplicitGC \
+      -XX:+ParallelRefProcEnabled -XX:+PerfDisableSharedMem \
+      -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC \
+      -XX:G1HeapRegionSize=8M -XX:G1HeapWastePercent=5 \
+      -XX:G1MaxNewSizePercent=40 -XX:G1MixedGCCountTarget=4 \
+      -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1NewSizePercent=30 \
+      -XX:G1RSetUpdatingPauseTimePercent=5 -XX:G1ReservePercent=20 \
+      -XX:InitiatingHeapOccupancyPercent=15 -XX:MaxGCPauseMillis=200 \
+      -XX:MaxTenuringThreshold=1 -XX:SurvivorRatio=32 \
+      -Dusing.aikars.flags=https://mcflags.emc.gs \
+      -Daikars.new.flags=true -jar paper.jar --nogui
+    ```
+    
+    <Note>Replace 10G with your desired RAM allocation. Use the same value for -Xms and -Xmx.</Note>
+  </Step>
+
+  <Step title="Configure View Distance">
+    Lower view and simulation distances reduce server load significantly.
+    
+    **server.properties:**
+    ```properties
+    view-distance=8
+    simulation-distance=6
+    ```
+  </Step>
+
+  <Step title="Enable Paper's Chunk Loading Limits">
+    Configure per-player chunk loading rates in `config/paper-global.yml`:
+    
+    ```yaml
+    chunk-loading-basic:
+      player-max-chunk-send-rate: 75.0
+      player-max-chunk-load-rate: 100.0
+      player-max-chunk-generate-rate: 10.0
+    ```
+  </Step>
+</Steps>
+
+## View Distance Optimization
+
+### Understanding View vs Simulation Distance
+
+<AccordionGroup>
+  <Accordion title="View Distance" icon="eye">
+    The radius of chunks sent to players. Higher values let players see further but increase:
+    - Network bandwidth usage
+    - Client-side performance requirements
+    - Server memory usage
+    
+    **Recommended:** 6-10 chunks (6-8 for budget servers, 8-10 for performance servers)
+  </Accordion>
+
+  <Accordion title="Simulation Distance" icon="gears">
+    The radius where the server simulates entities, random ticks, and spawning. This has the biggest performance impact.
+    
+    **Recommended:** 4-6 chunks (always ≤ view-distance)
+    
+    <Warning>Simulation distance directly affects mob spawning and crop growth!</Warning>
+  </Accordion>
+</AccordionGroup>
+
+### Chunk Loading Rate Limits
+
+Paper's chunk loading system (GlobalConfiguration.java:40-77) prevents players from overloading the server:
+
+<ParamField path="player-max-chunk-send-rate" type="double" default="75.0">
+  Chunks sent per second per player. Prevents bandwidth saturation.
+  
+  - **High-performance servers:** 75-100
+  - **Budget servers:** 50-75
+  - **Heavily loaded servers:** 30-50
+</ParamField>
+
+<ParamField path="player-max-chunk-load-rate" type="double" default="100.0">
+  Maximum chunks loaded per second per player (includes generation checks).
+  
+  - **SSD servers:** 100-150
+  - **HDD servers:** 50-100
+</ParamField>
+
+<ParamField path="player-max-chunk-generate-rate" type="double" default="-1.0">
+  Maximum chunks generated per second per player. Critical for exploration servers.
+  
+  - **New worlds/exploration:** 5-10
+  - **Established worlds:** -1 (disabled)
+  
+  <Tip>Limit chunk generation to prevent lag spikes when players explore new areas!</Tip>
+</ParamField>
+
+## Entity Optimization
+
+### Spawn Limits
+
+Reduce mob counts to improve performance (WorldConfiguration.java:180-186):
+
+```yaml
+# config/paper-world-defaults.yml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 50      # Default: 70
+      creature: 5      # Default: 10
+      ambient: 10      # Default: 15
+      water_creature: 3  # Default: 5
+      water_ambient: 10  # Default: 20
+```
+
+### Per-Player Mob Spawns
+
+<ParamField path="entities.spawning.per-player-mob-spawns" type="boolean" default="true">
+  Enable per-player mob spawning (WorldConfiguration.java:178).
+  
+  **Benefits:**
+  - More consistent experience for each player
+  - Better spawn rates in multiplayer
+  - Slight CPU overhead but worth it
+  
+  <Tip>Keep this enabled unless you have 200+ players online simultaneously.</Tip>
+</ParamField>
+
+### Despawn Ranges
+
+Adjust how far mobs can be from players before despawning:
+
+```yaml
+entities:
+  spawning:
+    despawn-ranges:
+      monster:
+        soft: 28    # Default: 32 (start despawn chance)
+        hard: 96    # Default: 128 (instant despawn)
+      creature:
+        soft: 24
+        hard: 96
+```
+
+<Note>Reducing these values decreases entity count but may make the world feel less alive.</Note>
+
+### Tick Optimization
+
+**Disable unnecessary entity ticking:**
+
+```yaml
+entities:
+  armor-stands:
+    tick: false  # Set to false if you only use armor stands as decorations
+  markers:
+    tick: true   # Usually safe to keep enabled
+```
+
+### Alternative Item Despawn Rates
+
+Reduce lag from common items (WorldConfiguration.java:265-270):
+
+```yaml
+entities:
+  spawning:
+    alt-item-despawn-rate:
+      enabled: true
+      items:
+        minecraft:cobblestone: 300    # 15 seconds instead of 5 minutes
+        minecraft:dirt: 300
+        minecraft:gravel: 300
+        minecraft:netherrack: 300
+        minecraft:diorite: 300
+        minecraft:andesite: 300
+        minecraft:granite: 300
+```
+
+## Chunk System Performance
+
+Paper's chunk system (GlobalConfiguration.java:224-235) uses dedicated threads:
+
+```yaml
+# config/paper-global.yml
+chunk-system:
+  io-threads: -1      # Auto-configure (recommended)
+  worker-threads: -1  # Auto-configure (recommended)
+```
+
+<Warning>
+Only modify these if you understand thread management. Paper automatically optimizes based on your CPU.
+</Warning>
+
+### Chunk Saving
+
+```yaml
+# config/paper-world-defaults.yml
+chunks:
+  auto-save-interval: -1  # Use bukkit.yml setting
+  max-auto-save-chunks-per-tick: 24
+  delay-chunk-unloads-by: 10s
+```
+
+<Accordion title="Chunk Save Optimization">
+  <ParamField path="max-auto-save-chunks-per-tick" type="integer" default="24">
+    More chunks saved per tick = shorter save times but bigger lag spikes.
+    
+    - **High tick rate priority:** 8-16
+    - **Balanced:** 24
+    - **Fast saves priority:** 32-48
+  </ParamField>
+  
+  <ParamField path="delay-chunk-unloads-by" type="string" default="10s">
+    Keep chunks loaded after players leave. Reduces repeated loading.
+    
+    - **Lots of RAM:** 30s-60s
+    - **Limited RAM:** 5s-10s
+  </ParamField>
+</Accordion>
+
+## Hopper Optimization
+
+Hoppers are a major source of lag (WorldConfiguration.java:482-488):
+
+```yaml
+hopper:
+  cooldown-when-full: true      # Reduces checks when container is full
+  disable-move-event: false     # Only set to true if no plugins use hopper events
+  ignore-occluding-blocks: false # Small optimization, may cause visual issues
+```
+
+<Tip>
+Encourage players to use water streams and ice boats instead of long hopper chains!
+</Tip>
+
+## Redstone Performance
+
+Paper offers alternative redstone implementations (WorldConfiguration.java:573-584):
+
+```yaml
+misc:
+  redstone-implementation: vanilla  # Options: vanilla, eigencraft, alternate_current
+```
+
+<AccordionGroup>
+  <Accordion title="vanilla" icon="cube">
+    Standard Minecraft redstone. Use this unless you have specific needs.
+  </Accordion>
+  
+  <Accordion title="alternate_current" icon="bolt">
+    Modern optimized redstone implementation. Better performance with some behavior changes.
+    
+    <Warning>Some redstone contraptions may break! Test thoroughly.</Warning>
+  </Accordion>
+  
+  <Accordion title="eigencraft" icon="microchip">
+    Legacy optimization. Generally not recommended for new servers.
+  </Accordion>
+</AccordionGroup>
+
+## Anti-Xray Performance Impact
+
+Anti-Xray adds CPU overhead (WorldConfiguration.java:94-131):
+
+```yaml
+anticheat:
+  anti-xray:
+    enabled: true
+    engine-mode: hide  # 'hide' = less CPU than 'obfuscate'
+    max-block-height: 64
+```
+
+**Performance by mode:**
+- `hide`: ~5-10% CPU increase, less effective
+- `obfuscate`: ~15-20% CPU increase, more effective
+
+<Tip>
+Only enable anti-xray in the overworld. Disable in nether/end using world-specific configs.
+</Tip>
+
+## Network Performance
+
+### Packet Limiting
+
+Paper includes packet rate limiting (GlobalConfiguration.java:259-283):
+
+```yaml
+packet-limiter:
+  kick-message: "&cExceeded packet rate!"
+  all-packets:
+    interval: 7.0
+    max-packet-rate: 500.0
+    action: KICK
+  overrides:
+    ServerboundPlaceRecipePacket:
+      interval: 4.0
+      max-packet-rate: 5.0
+      action: DROP
+```
+
+### Compression
+
+**server.properties:**
+```properties
+network-compression-threshold: 256
+```
+
+- **Good internet/LAN:** 512-1024 (less CPU, more bandwidth)
+- **Limited bandwidth:** 128-256 (more CPU, less bandwidth)
+- **Terrible internet:** 64 (maximum compression)
+
+## Monitoring Performance
+
+### Built-in Tools
+
+<CardGroup cols={2}>
+  <Card title="Spark Profiler" icon="chart-line">
+    Paper includes Spark for profiling (GlobalConfiguration.java:101-106):
+    
+    ```yaml
+    spark:
+      enabled: true
+      enable-immediately: false
+    ```
+    
+    Use `/spark profiler` to identify lag sources.
+  </Card>
+  
+  <Card title="MSPT Command" icon="clock">
+    Check server tick time with `/mspt`:
+    
+    - **< 40ms:** Excellent (20 TPS)
+    - **40-45ms:** Good
+    - **45-50ms:** Acceptable
+    - **> 50ms:** Lagging (< 20 TPS)
+  </Card>
+</CardGroup>
+
+### Timings
+
+Generate performance reports:
+
+```bash
+/timings on
+# Let server run for 10-15 minutes
+/timings paste
+```
+
+Analyze the report at the provided URL to identify performance bottlenecks.
+
+## World-Specific Performance
+
+### Nether Optimization
+
+```yaml
+# config/paper-world.yml
+world_list:
+  world_nether:
+    entities:
+      spawning:
+        spawn-limits:
+          monster: 30  # Reduce from default
+    anticheat:
+      anti-xray:
+        enabled: false  # No ores to xray in nether ceiling
+```
+
+### End Optimization
+
+```yaml
+world_list:
+  world_the_end:
+    entities:
+      behavior:
+        should-remove-dragon: false
+    anticheat:
+      anti-xray:
+        enabled: false  # No ores in the end
+```
+
+## Database & I/O Optimization
+
+### Region File Cache
+
+```yaml
+# config/paper-global.yml
+misc:
+  region-file-cache-size: 256  # Minimum: 4
+```
+
+- **Lots of RAM:** 512-1024
+- **Normal RAM:** 256
+- **Limited RAM:** 128
+
+### Player Auto-Save
+
+```yaml
+player-auto-save:
+  rate: -1          # -1 = use vanilla (6000 ticks/5 min)
+  max-per-tick: -1  # Auto-calculate
+```
+
+## Advanced: Tick Rate Configuration
+
+Fine-tune tick rates for various systems (WorldConfiguration.java:533-543):
+
+```yaml
+tick-rates:
+  grass-spread: 1      # Increase to slow grass spread
+  container-update: 1  # Chest update rate
+  mob-spawner: 1       # Spawner check rate
+  wet-farmland: 1      # Farmland hydration checks
+  dry-farmland: 1      # Farmland drying checks
+```
+
+<Warning>
+Increasing tick rates changes game mechanics! Only modify if you understand the impact.
+</Warning>
+
+## Recommended Configurations
+
+### High-Performance Server (16GB RAM, 8+ cores)
+
+```yaml
+# server.properties
+view-distance=10
+simulation-distance=8
+
+# paper-global.yml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 100.0
+  player-max-chunk-load-rate: 150.0
+  player-max-chunk-generate-rate: 15.0
+
+# paper-world-defaults.yml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 70
+      creature: 10
+    per-player-mob-spawns: true
+```
+
+### Budget Server (4GB RAM, 2-4 cores)
+
+```yaml
+# server.properties
+view-distance=6
+simulation-distance=4
+
+# paper-global.yml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 50.0
+  player-max-chunk-load-rate: 75.0
+  player-max-chunk-generate-rate: 5.0
+
+# paper-world-defaults.yml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 40
+      creature: 5
+    alt-item-despawn-rate:
+      enabled: true
+```
+
+### Survival Server (Balanced)
+
+```yaml
+# server.properties
+view-distance=8
+simulation-distance=6
+
+# paper-global.yml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 75.0
+  player-max-chunk-load-rate: 100.0
+  player-max-chunk-generate-rate: 10.0
+
+misc:
+  region-file-cache-size: 256
+
+# paper-world-defaults.yml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 50
+      creature: 8
+hopper:
+  cooldown-when-full: true
+```
+
+## Related Resources
+
+<CardGroup cols={3}>
+  <Card title="Global Config" icon="globe" href="/administration/paper-configuration">
+    Full global configuration reference
+  </Card>
+  <Card title="World Config" icon="earth-americas" href="/administration/world-configuration">
+    Per-world settings reference
+  </Card>
+  <Card title="Commands" icon="terminal" href="/administration/commands">
+    Server management commands
+  </Card>
+</CardGroup>

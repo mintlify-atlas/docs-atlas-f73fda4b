@@ -1,0 +1,161 @@
+---
+title: Installation
+description: Learn how to download and install Paper for your Minecraft server
+---
+
+Paper is a high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies. This guide will walk you through downloading and installing Paper on your server.
+
+## Requirements
+
+Before installing Paper, ensure your system meets the following requirements:
+
+<Note>
+  Paper requires **Java 21** to run. Make sure you have the correct Java version installed before proceeding.
+</Note>
+
+- Java 21 or higher
+- Minimum 2GB RAM (4GB+ recommended)
+- A supported operating system (Windows, Linux, macOS)
+
+### Verify Java Installation
+
+Check your Java version by running:
+
+```bash
+java -version
+```
+
+You should see output indicating Java 21 or higher. If not, download and install Java 21 from [Adoptium](https://adoptium.net/) or your preferred Java distribution.
+
+## Downloading Paper
+
+<Steps>
+  <Step title="Visit the Paper downloads page">
+    Navigate to [papermc.io/downloads/paper](https://papermc.io/downloads/paper) to access the official Paper downloads.
+  </Step>
+
+  <Step title="Select your Minecraft version">
+    Choose the Minecraft version you want to run on your server. Paper supports multiple Minecraft versions.
+  </Step>
+
+  <Step title="Download the Paperclip jar">
+    Download the latest build for your selected Minecraft version. The file will be named something like `paper-1.21.11-XXX.jar`.
+    
+    <Tip>
+      Paperclip is a jar file that you can download and run just like a normal jar file. It handles all the setup for you automatically.
+    </Tip>
+  </Step>
+</Steps>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Create a server directory">
+    Create a new directory for your server files:
+
+    <CodeGroup>
+    ```bash Windows
+    mkdir paper-server
+    cd paper-server
+    ```
+
+    ```bash Linux/macOS
+    mkdir paper-server
+    cd paper-server
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Move the Paper jar">
+    Move or copy the downloaded Paper jar file into your server directory and optionally rename it for convenience:
+
+    <CodeGroup>
+    ```bash Windows
+    move Downloads\paper-*.jar server.jar
+    ```
+
+    ```bash Linux/macOS
+    mv ~/Downloads/paper-*.jar server.jar
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Run Paper for the first time">
+    Run the Paper jar to initialize the server:
+
+    ```bash
+    java -Xms2G -Xmx2G -jar server.jar --nogui
+    ```
+
+    <Note>
+      - `-Xms2G` sets the initial memory allocation
+      - `-Xmx2G` sets the maximum memory allocation
+      - `--nogui` disables the graphical interface (recommended for servers)
+      - Adjust memory values based on your available RAM
+    </Note>
+
+    The server will create configuration files and then stop, prompting you to accept the EULA.
+  </Step>
+
+  <Step title="Accept the EULA">
+    Open the `eula.txt` file that was created and change `eula=false` to `eula=true`:
+
+    ```txt eula.txt
+    eula=true
+    ```
+
+    <Warning>
+      By changing this to true, you are indicating your agreement to Mojang's [EULA](https://aka.ms/MinecraftEULA).
+    </Warning>
+  </Step>
+
+  <Step title="Start your server">
+    Run the same command again to start your server:
+
+    ```bash
+    java -Xms2G -Xmx2G -jar server.jar --nogui
+    ```
+
+    Your Paper server is now running! Players can connect using your server's IP address.
+  </Step>
+</Steps>
+
+## Additional Startup Options
+
+Paper supports various command-line options to customize your server:
+
+```bash
+java -jar server.jar [options]
+```
+
+### Common Options
+
+- `--port <port>` - Set the server port (default: 25565)
+- `--world <world-name>` - Set the world name
+- `--plugins <directory>` - Set the plugins directory
+- `--config <file>` - Specify a custom server.properties file
+- `--bukkit-settings <file>` - Specify a custom bukkit.yml file
+- `--spigot-settings <file>` - Specify a custom spigot.yml file
+- `--paper-dir <directory>` - Set the Paper configuration directory
+- `--nogui` - Disable the graphical console
+- `--noconsole` - Disable the console entirely
+
+<Tip>
+  For production servers, consider creating a startup script to manage your server more easily. See the [Quick Start](/getting-started/quickstart) guide for examples.
+</Tip>
+
+## Next Steps
+
+Now that you have Paper installed:
+
+- Follow the [Quick Start](/getting-started/quickstart) guide to get your server running
+- Learn about [Configuration](/getting-started/configuration) to customize your server
+- Explore the full documentation at [docs.papermc.io](https://docs.papermc.io)
+
+## Getting Help
+
+If you need assistance:
+
+- Visit the [Paper forums](https://forums.papermc.io/)
+- Join the [Discord community](https://discord.gg/papermc)
+- Check the official [documentation](https://docs.papermc.io)

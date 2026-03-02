@@ -1,0 +1,379 @@
+---
+title: 'Bukkit API'
+description: 'Reference guide for the core Bukkit API that Paper extends'
+---
+
+# Bukkit API
+
+The Bukkit API is the foundational Minecraft server API that Paper builds upon. It provides comprehensive access to server functionality, game mechanics, and player interactions.
+
+## Core Classes
+
+### Server Access
+
+#### `org.bukkit.Bukkit`
+
+The main entry point for accessing server functionality:
+
+```java
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.entity.Player;
+
+// Get the server instance
+Server server = Bukkit.getServer();
+
+// Get online players
+Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+
+// Broadcast a message
+Bukkit.broadcastMessage("Server announcement!");
+
+// Get a world
+World world = Bukkit.getWorld("world");
+
+// Schedule a task
+Bukkit.getScheduler().runTaskLater(plugin, () -> {
+    // Code to run later
+}, 20L); // 20 ticks = 1 second
+```
+
+#### `org.bukkit.Server`
+
+Represents the server itself:
+
+```java
+// Get server properties
+String serverName = server.getName(); // "Paper"
+String version = server.getVersion();
+int maxPlayers = server.getMaxPlayers();
+
+// World management
+List<World> worlds = server.getWorlds();
+World world = server.createWorld(new WorldCreator("custom_world"));
+
+// Plugin access
+PluginManager pm = server.getPluginManager();
+Plugin myPlugin = pm.getPlugin("MyPlugin");
+```
+
+### Player Management
+
+#### `org.bukkit.entity.Player`
+
+Represents a connected player:
+
+```java
+// Player information
+String name = player.getName();
+UUID uuid = player.getUniqueId();
+InetAddress address = player.getAddress().getAddress();
+
+// Player state
+GameMode gameMode = player.getGameMode();
+boolean isOp = player.isOp();
+Location location = player.getLocation();
+
+// Player actions
+player.teleport(location);
+player.sendMessage("Hello!");
+player.kick(Component.text("Goodbye!"));
+player.setHealth(20.0);
+player.setFoodLevel(20);
+
+// Inventory access
+PlayerInventory inventory = player.getInventory();
+ItemStack item = inventory.getItemInMainHand();
+```
+
+### World Management
+
+#### `org.bukkit.World`
+
+Represents a game world:
+
+```java
+// World properties
+String worldName = world.getName();
+Environment env = world.getEnvironment(); // NORMAL, NETHER, THE_END
+Difficulty difficulty = world.getDifficulty();
+
+// Block access
+Block block = world.getBlockAt(x, y, z);
+block.setType(Material.STONE);
+
+// Entity spawning
+Entity entity = world.spawnEntity(location, EntityType.ZOMBIE);
+Zombie zombie = (Zombie) entity;
+zombie.setBaby(true);
+
+// Chunk management
+Chunk chunk = world.getChunkAt(x, z);
+boolean loaded = chunk.isLoaded();
+chunk.load();
+
+// World settings
+world.setDifficulty(Difficulty.HARD);
+world.setStorm(true);
+world.setTime(6000); // Noon
+```
+
+#### `org.bukkit.Chunk`
+
+Represents a 16x16 chunk:
+
+```java
+// Chunk coordinates
+int x = chunk.getX();
+int z = chunk.getZ();
+
+// Chunk state
+boolean loaded = chunk.isLoaded();
+boolean forceLoaded = chunk.isForceLoaded();
+
+// Load/unload
+chunk.load(true);
+chunk.unload();
+chunk.setForceLoaded(true);
+
+// Block access
+for (BlockState state : chunk.getTileEntities()) {
+    // Access tile entities
+}
+```
+
+## Commands
+
+#### `org.bukkit.command.Command`
+
+Base class for commands:
+
+```java
+public class MyCommand extends Command {
+    public MyCommand(String name) {
+        super(name);
+        setDescription("My custom command");
+        setUsage("/mycommand <arg>");
+        setPermission("myplugin.mycommand");
+    }
+    
+    @Override
+    public boolean execute(CommandSender sender, String label, String[] args) {
+        if (args.length == 0) {
+            sender.sendMessage("Usage: " + getUsage());
+            return false;
+        }
+        
+        // Command logic
+        sender.sendMessage("Command executed!");
+        return true;
+    }
+    
+    @Override
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
+        if (args.length == 1) {
+            return List.of("option1", "option2", "option3");
+        }
+        return List.of();
+    }
+}
+```
+
+#### `org.bukkit.command.CommandSender`
+
+Represents any command executor:
+
+```java
+// Send messages
+sender.sendMessage("Message");
+sender.sendMessage(Component.text("Fancy message"));
+
+// Permission checks
+if (sender.hasPermission("myplugin.admin")) {
+    // Admin action
+}
+
+// Check if player
+if (sender instanceof Player player) {
+    // Player-specific actions
+}
+```
+
+## Configuration
+
+#### `org.bukkit.configuration.file.FileConfiguration`
+
+YAML configuration management:
+
+```java
+FileConfiguration config = plugin.getConfig();
+
+// Reading values
+String message = config.getString("messages.welcome", "Welcome!");
+int amount = config.getInt("amounts.default", 10);
+boolean enabled = config.getBoolean("features.enabled", true);
+List<String> list = config.getStringList("lists.items");
+
+// Setting values
+config.set("messages.goodbye", "Goodbye!");
+config.set("amounts.max", 100);
+
+// Save configuration
+plugin.saveConfig();
+
+// Reload configuration
+plugin.reloadConfig();
+
+// Configuration sections
+ConfigurationSection section = config.getConfigurationSection("database");
+String host = section.getString("host");
+int port = section.getInt("port");
+```
+
+## Scheduler
+
+#### `org.bukkit.scheduler.BukkitScheduler`
+
+Task scheduling and async operations:
+
+```java
+BukkitScheduler scheduler = Bukkit.getScheduler();
+
+// Synchronous tasks (on main thread)
+scheduler.runTask(plugin, () -> {
+    // Runs next tick
+});
+
+scheduler.runTaskLater(plugin, () -> {
+    // Runs after delay
+}, 20L); // 20 ticks = 1 second
+
+scheduler.runTaskTimer(plugin, () -> {
+    // Runs repeatedly
+}, 0L, 20L); // Delay 0, repeat every 20 ticks
+
+// Asynchronous tasks (off main thread)
+scheduler.runTaskAsynchronously(plugin, () -> {
+    // Database query, HTTP request, etc.
+    // Cannot access Bukkit API from here!
+});
+
+scheduler.runTaskLaterAsynchronously(plugin, () -> {
+    // Async task with delay
+}, 20L);
+
+scheduler.runTaskTimerAsynchronously(plugin, () -> {
+    // Repeating async task
+}, 0L, 100L);
+
+// Cancel tasks
+int taskId = scheduler.runTaskTimer(plugin, task, 0L, 20L);
+scheduler.cancelTask(taskId);
+
+// Cancel all plugin tasks
+scheduler.cancelTasks(plugin);
+```
+
+<Warning>
+  Never access the Bukkit API from asynchronous tasks! Use `runTask()` to switch back to the main thread.
+</Warning>
+
+## Inventory API
+
+#### `org.bukkit.inventory.Inventory`
+
+Inventory management:
+
+```java
+// Create custom inventory
+Inventory inv = Bukkit.createInventory(null, 27, Component.text("Custom GUI"));
+
+// Add items
+ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
+ItemMeta meta = item.getItemMeta();
+meta.displayName(Component.text("Legendary Sword"));
+item.setItemMeta(meta);
+inv.setItem(13, item);
+
+// Open for player
+player.openInventory(inv);
+
+// Player inventory
+PlayerInventory playerInv = player.getInventory();
+ItemStack mainHand = playerInv.getItemInMainHand();
+ItemStack offHand = playerInv.getItemInOffHand();
+ItemStack helmet = playerInv.getHelmet();
+```
+
+## Permissions
+
+#### `org.bukkit.permissions.Permission`
+
+Permission system:
+
+```java
+// Check permissions
+if (player.hasPermission("myplugin.use")) {
+    // Allowed
+}
+
+if (player.isOp()) {
+    // Is operator
+}
+
+// Permission objects
+Permission perm = new Permission("myplugin.admin");
+perm.setDescription("Allows admin access");
+perm.setDefault(PermissionDefault.OP);
+
+// Register permission
+Bukkit.getPluginManager().addPermission(perm);
+```
+
+## Utilities
+
+### Location
+
+```java
+Location loc = new Location(world, x, y, z, yaw, pitch);
+Location playerLoc = player.getLocation();
+
+// Distance calculations
+double distance = loc.distance(otherLoc);
+double distanceSquared = loc.distanceSquared(otherLoc); // Faster
+
+// Direction
+Vector direction = loc.getDirection();
+
+// Relative locations
+Location above = loc.add(0, 1, 0);
+Location inFront = loc.add(direction.multiply(5));
+```
+
+### Material
+
+```java
+Material type = Material.DIAMOND_SWORD;
+
+boolean isBlock = type.isBlock();
+boolean isItem = type.isItem();
+boolean isSolid = type.isSolid();
+boolean isTransparent = type.isTransparent();
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Paper API" href="/api/paper-api">
+    Explore Paper-specific enhancements
+  </Card>
+  <Card title="Events" href="/api/events">
+    Work with the event system
+  </Card>
+  <Card title="Adventure API" href="/api/adventure">
+    Modern text components
+  </Card>
+  <Card title="Plugin Development" href="/plugins/getting-started">
+    Build your first plugin
+  </Card>
+</CardGroup>

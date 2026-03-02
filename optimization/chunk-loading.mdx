@@ -1,0 +1,349 @@
+---
+title: Chunk Loading Optimization
+description: Configure Paper's chunk loading and generation system for optimal performance
+---
+
+Paper's chunk system is one of its most significant performance improvements over vanilla Minecraft. The Moonrise chunk system provides multi-threaded chunk loading, generation, and I/O operations.
+
+## Chunk System Architecture
+
+### Moonrise Worker and I/O Pools
+
+Paper uses two separate thread pools for chunk operations:
+
+1. **Worker Pool**: Handles chunk generation, lighting calculations, and general processing
+2. **I/O Pool**: Manages disk read/write operations for chunk data
+
+Both pools are defined in `ca.spottedleaf.moonrise.common.util.MoonriseCommon`:
+
+```java
+public static final BalancedPrioritisedThreadPool WORKER_POOL
+public static final BalancedPrioritisedThreadPool IO_POOL
+```
+
+<Note>
+The thread pools use a queue hold time of 20ms for workers and 25ms for I/O operations, balancing responsiveness with throughput.
+</Note>
+
+## Configuration Options
+
+### Global Chunk Loading Settings
+
+**File**: `config/paper-global.yml`
+
+```yaml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 75.0
+  player-max-chunk-load-rate: 100.0
+  player-max-chunk-generate-rate: -1.0
+```
+
+#### player-max-chunk-send-rate
+
+Maximum chunks per second sent to each player.
+
+- **Default**: `75.0`
+- **Unit**: chunks per second
+- **Recommendation**: 50-100 for most servers
+
+<Tip>
+Set to `-1` to disable the limit. Higher values improve player movement responsiveness but increase network usage.
+</Tip>
+
+#### player-max-chunk-load-rate
+
+Maximum chunks per second loaded for each player (includes checking if chunks are already generated).
+
+- **Default**: `100.0`
+- **Unit**: chunks per second
+- **Impact**: Affects teleportation speed and world exploration
+
+<Warning>
+This setting affects chunk generation rate since loading always checks if generation is needed first.
+</Warning>
+
+#### player-max-chunk-generate-rate
+
+Maximum chunks per second generated for each player.
+
+- **Default**: `-1.0` (unlimited)
+- **Unit**: chunks per second
+- **Use case**: Prevent lag spikes during rapid world exploration
+
+### Advanced Chunk Loading Settings
+
+```yaml
+chunk-loading-advanced:
+  auto-config-send-distance: true
+  player-max-concurrent-chunk-loads: 0
+  player-max-concurrent-chunk-generates: 0
+```
+
+#### auto-config-send-distance
+
+Matches server send distance to client view distance settings (if smaller).
+
+- **Default**: `true`
+- **Benefit**: Prevents unnecessary chunk sends to clients with low view distance
+
+#### player-max-concurrent-chunk-loads
+
+Maximum simultaneous chunk load operations per player.
+
+- **Default**: `0` (auto-configured based on player count)
+- **Manual values**: Set to `-1` for unlimited, or positive number for fixed limit
+
+<Note>
+Auto-configuration adjusts concurrency based on server load and player count. Manual tuning is rarely necessary.
+</Note>
+
+#### player-max-concurrent-chunk-generates
+
+Maximum simultaneous chunk generation operations per player.
+
+- **Default**: `0` (auto-configured)
+- **Impact**: Limits CPU usage during world generation
+
+### Thread Pool Configuration
+
+**File**: `config/paper-global.yml`
+
+```yaml
+chunk-system:
+  io-threads: -1
+  worker-threads: -1
+```
+
+#### io-threads
+
+Number of threads dedicated to chunk I/O operations.
+
+- **Default**: `-1` (auto-configured, minimum 1)
+- **Recommendation**: 1-2 threads for most servers
+- **Storage consideration**: More threads benefit NVMe SSDs over HDDs
+
+<Tip>
+For servers on NVMe storage with 16+ CPU cores, consider setting this to `2` for improved I/O parallelism.
+</Tip>
+
+#### worker-threads
+
+Number of threads for chunk generation and processing.
+
+- **Default**: `-1` (auto-configured based on CPU cores)
+- **Auto-calculation**:
+  - 4 cores or less: 1-2 worker threads
+  - More than 4 cores: `(cores / 2) / 2`
+  - Can be overridden with `-DPaper.WorkerThreadCount=N` JVM flag
+
+**Example auto-configuration**:
+
+| CPU Cores | Worker Threads |
+|-----------|----------------|
+| 4 or less | 1-2 |
+| 8 | 2 |
+| 16 | 4 |
+| 32 | 8 |
+
+<Warning>
+Setting too many worker threads can cause thread contention and reduce performance. Start with auto-configuration.
+</Warning>
+
+## Per-World Chunk Settings
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+chunks:
+  auto-save-interval: default  # Inherited from server.properties
+  max-auto-save-chunks-per-tick: 24
+  fixed-chunk-inhabited-time: -1
+  prevent-moving-into-unloaded-chunks: false
+  delay-chunk-unloads-by: 10s
+```
+
+### auto-save-interval
+
+How often chunks are saved to disk.
+
+- **Default**: Inherits from `server.properties` (6000 ticks / 5 minutes)
+- **Format**: Duration (e.g., `5m`, `300s`, or ticks as integer)
+
+<Accordion title="Autosave Performance Impact">
+Frequent autosaves cause I/O spikes. Increasing the interval reduces stuttering but increases data loss risk on crashes.
+
+**Recommended values**:
+- Small servers (< 20 players): `6000` (5 min)
+- Large servers (50+ players): `12000` (10 min)
+</Accordion>
+
+### max-auto-save-chunks-per-tick
+
+Maximum chunks saved per server tick during autosave.
+
+- **Default**: `24`
+- **Impact**: Spreads autosave I/O across multiple ticks
+
+<Tip>
+Higher values complete autosaves faster but cause larger lag spikes. Lower values spread out the I/O cost.
+</Tip>
+
+### delay-chunk-unloads-by
+
+Delay before unloading chunks after all players leave the area.
+
+- **Default**: `10s`
+- **Benefit**: Prevents chunk reload thrashing when players move in/out of areas
+
+```yaml
+delay-chunk-unloads-by: 10s  # Keep chunks loaded for 10 seconds
+```
+
+### entity-per-chunk-save-limit
+
+Limit specific entity types saved per chunk to prevent chunk save lag.
+
+```yaml
+chunks:
+  entity-per-chunk-save-limit:
+    arrow: -1         # Unlimited
+    ender_pearl: -1
+    experience_orb: -1
+    fireball: -1
+    small_fireball: -1
+    snowball: -1
+```
+
+<Note>
+Set to a positive number to limit entities of that type. Useful for preventing projectile buildup in chunks.
+</Note>
+
+## Optimization Strategies
+
+### 1. Rate Limiting for Exploration
+
+Prevent chunk generation lag during rapid exploration:
+
+```yaml
+chunk-loading-basic:
+  player-max-chunk-generate-rate: 10.0  # Limit to 10 chunks/sec per player
+```
+
+### 2. View Distance Tuning
+
+**File**: `config/spigot.yml`
+
+```yaml
+world-settings:
+  default:
+    view-distance: 8
+    simulation-distance: 6
+```
+
+<Accordion title="View Distance Performance Impact">
+Each view distance increase loads exponentially more chunks:
+
+| View Distance | Chunks Loaded | Performance Impact |
+|---------------|---------------|-----------------|
+| 6 | 169 | Low |
+| 8 | 289 | Medium |
+| 10 | 441 | High |
+| 12 | 625 | Very High |
+
+Recommendation: Use 6-10 for most servers.
+</Accordion>
+
+### 3. Pregenerate Worlds
+
+Pregenerate chunks to eliminate runtime generation lag:
+
+```bash
+# Using Chunky plugin
+/chunky radius 5000
+/chunky world world
+/chunky start
+```
+
+Benefits:
+- No generation lag during gameplay
+- Consistent TPS
+- Better for PvP and minigame servers
+
+### 4. Optimize Chunk I/O
+
+**Use NVMe storage**: 5-10x faster than SATA SSDs for chunk operations
+
+**Region file cache** (`config/paper-global.yml`):
+
+```yaml
+misc:
+  region-file-cache-size: 256  # Default
+```
+
+Increase for servers with large world sizes or many dimensions:
+
+```yaml
+misc:
+  region-file-cache-size: 512  # For large servers
+```
+
+## Monitoring Chunk Performance
+
+### Using Spark
+
+Profile chunk system performance:
+
+```bash
+/spark profiler start --thread *
+# Wait 60 seconds
+/spark profiler stop
+```
+
+Look for:
+- `Paper Worker` threads - chunk generation time
+- `Paper I/O Worker` threads - disk I/O bottlenecks
+
+### Timings
+
+```bash
+/timings on
+# Play for 5 minutes
+/timings report
+```
+
+Review "Chunks" section for load/generation times.
+
+## Troubleshooting
+
+### Slow Chunk Loading
+
+**Symptoms**: Chunks load slowly during teleportation or flight
+
+**Solutions**:
+1. Check `player-max-chunk-load-rate` (increase to 150-200)
+2. Verify storage performance (NVMe recommended)
+3. Increase `worker-threads` if CPU usage is low
+
+### Chunk Generation Lag
+
+**Symptoms**: TPS drops when exploring new areas
+
+**Solutions**:
+1. Set `player-max-chunk-generate-rate` to 5-10
+2. Pregenerate the world
+3. Reduce view distance temporarily
+
+### Autosave Lag Spikes
+
+**Symptoms**: Regular lag spikes every 5 minutes
+
+**Solutions**:
+1. Increase `auto-save-interval` to 10+ minutes
+2. Reduce `max-auto-save-chunks-per-tick` to spread I/O
+3. Upgrade to faster storage (NVMe)
+
+## See Also
+
+- [Server Performance Overview](/optimization/server-performance)
+- [Entity Performance](/optimization/entity-performance)
+- [Network Optimization](/optimization/network)

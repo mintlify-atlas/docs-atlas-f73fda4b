@@ -1,0 +1,162 @@
+---
+title: Getting Started with Plugin Development
+description: Learn how to create your first Paper plugin
+---
+
+Paper is a high-performance Minecraft server that extends the Bukkit API with additional features and improvements. This guide will help you create your first Paper plugin.
+
+## Prerequisites
+
+- Java Development Kit (JDK) 21 or higher
+- A Java IDE (IntelliJ IDEA recommended)
+- Basic knowledge of Java programming
+
+## Project Setup
+
+<Steps>
+  <Step title="Add Paper API Dependency">
+    Configure your build tool to include the Paper API dependency.
+
+    <CodeGroup>
+      ```xml Maven
+      <repositories>
+          <repository>
+              <id>papermc</id>
+              <url>https://repo.papermc.io/repository/maven-public/</url>
+          </repository>
+      </repositories>
+
+      <dependencies>
+          <dependency>
+              <groupId>io.papermc.paper</groupId>
+              <artifactId>paper-api</artifactId>
+              <version>1.21.11-R0.1-SNAPSHOT</version>
+              <scope>provided</scope>
+          </dependency>
+      </dependencies>
+      ```
+
+      ```kotlin Gradle (Kotlin DSL)
+      repositories {
+          maven {
+              url = uri("https://repo.papermc.io/repository/maven-public/")
+          }
+      }
+
+      dependencies {
+          compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+      }
+
+      java {
+          toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+      }
+      ```
+    </CodeGroup>
+
+    <Note>
+      The `provided` scope (Maven) or `compileOnly` (Gradle) is used because the Paper server already includes the API at runtime.
+    </Note>
+  </Step>
+
+  <Step title="Create Main Plugin Class">
+    Create a class that extends `JavaPlugin`. This is the entry point for your plugin.
+
+    ```java
+    package com.example.myplugin;
+
+    import org.bukkit.plugin.java.JavaPlugin;
+
+    public final class MyPlugin extends JavaPlugin {
+
+        @Override
+        public void onEnable() {
+            getLogger().info("MyPlugin has been enabled!");
+        }
+
+        @Override
+        public void onDisable() {
+            getLogger().info("MyPlugin has been disabled!");
+        }
+    }
+    ```
+
+    <Tip>
+      The `onEnable()` method is called when your plugin is loaded, and `onDisable()` is called when it's unloaded.
+    </Tip>
+  </Step>
+
+  <Step title="Create paper-plugin.yml">
+    Create a `paper-plugin.yml` file in your `src/main/resources` directory to describe your plugin.
+
+    ```yaml
+    name: MyPlugin
+    version: 1.0.0
+    main: com.example.myplugin.MyPlugin
+    api-version: '1.21'
+    description: My first Paper plugin
+    author: YourName
+    ```
+
+    See the [paper-plugin.yml reference](/plugins/plugin-yml) for all available options.
+  </Step>
+
+  <Step title="Build and Test">
+    Build your plugin JAR file and place it in the `plugins` folder of your Paper server.
+
+    <CodeGroup>
+      ```bash Maven
+      mvn clean package
+      ```
+
+      ```bash Gradle
+      ./gradlew build
+      ```
+    </CodeGroup>
+
+    Your compiled plugin will be in the `target` (Maven) or `build/libs` (Gradle) directory.
+  </Step>
+</Steps>
+
+## Key Classes and Interfaces
+
+### JavaPlugin
+
+The `JavaPlugin` class (package: `org.bukkit.plugin.java.JavaPlugin`) is the base class for all plugins. It provides:
+
+- **Lifecycle methods**: `onLoad()`, `onEnable()`, `onDisable()`
+- **Server access**: `getServer()` returns the Server instance
+- **Data folder**: `getDataFolder()` returns your plugin's data directory
+- **Logger**: `getLogger()` returns a logger for your plugin
+- **Configuration**: `getConfig()`, `saveConfig()`, `reloadConfig()`
+- **Metadata**: `getPluginMeta()` returns plugin information
+
+### PluginMeta
+
+The `PluginMeta` interface (package: `io.papermc.paper.plugin.configuration.PluginMeta`) provides access to plugin metadata:
+
+```java
+PluginMeta meta = getPluginMeta();
+String name = meta.getName();
+String version = meta.getVersion();
+List<String> authors = meta.getAuthors();
+String mainClass = meta.getMainClass();
+```
+
+## Static Plugin Access
+
+You can get a reference to your plugin instance from anywhere in your code:
+
+```java
+MyPlugin plugin = JavaPlugin.getPlugin(MyPlugin.class);
+```
+
+<Warning>
+  Do not call `getPlugin()` from static initializers, as this will throw an `IllegalStateException`.
+</Warning>
+
+## Next Steps
+
+- Learn about the [plugin lifecycle](/plugins/lifecycle)
+- Create [event listeners](/plugins/events)
+- Register [commands](/plugins/commands)
+- Set up [configuration files](/plugins/configuration)

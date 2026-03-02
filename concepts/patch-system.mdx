@@ -1,0 +1,216 @@
+---
+title: Paper's Patch System
+description: How Paper uses git patches to modify Minecraft source code
+---
+
+## Overview
+
+Paper modifies Minecraft source files through a git-based patch system. This approach enables tracking changes across Minecraft updates and maintaining a clean separation between vanilla code and Paper's modifications.
+
+## Three Patch Types
+
+Paper uses three distinct types of patches to organize modifications:
+
+### Sources (Per-File Patches)
+
+Per-file patches modify individual Minecraft classes. These patches:
+
+- Are stored as a single large commit in `paper-server/src/minecraft`
+- Modify one or more Minecraft source files
+- Are automatically managed by the `fixupSourcePatches` task
+- Represent the most common type of modification
+
+<Note>
+Per-file patches are combined into one commit to simplify the git history while still tracking which files changed.
+</Note>
+
+### Resources (Per-File Data Patches)
+
+Resource patches modify Minecraft data files such as:
+
+- JSON configuration files
+- Resource pack assets
+- Data pack files
+- Other non-code resources
+
+Like source patches, these are applied per-file and tracked in the patch system.
+
+### Features (Large Multi-Class Patches)
+
+Feature patches are used for substantial changes that:
+
+- Modify multiple Minecraft classes
+- Implement complex optimizations
+- Add major new functionality
+- Can be optionally dropped during updates
+
+<Info>
+Feature patches are kept separate because they're harder to maintain and may need to be temporarily disabled during Minecraft version updates.
+</Info>
+
+## How Patches Are Structured
+
+The `paper-server/src/minecraft` directory is a git repository with a specific commit structure:
+
+1. **Base commit** - Decompiled and deobfuscated vanilla Minecraft source
+2. **Per-file patches commit** - All source/resource patches combined
+3. **Feature commits** - Individual commits for each feature patch
+
+```
+Base (Vanilla Minecraft)
+  ↓
+Paper File Patches (single commit)
+  ↓
+Feature Patch 1 (commit)
+  ↓
+Feature Patch 2 (commit)
+  ↓
+Feature Patch N (commit)
+```
+
+## Working with Patches
+
+### Applying Patches
+
+To apply all patches to the Minecraft source:
+
+```bash
+./gradlew applyPatches
+```
+
+This command:
+1. Resets `paper-server/src/minecraft` to the base commit
+2. Applies per-file patches as a single commit
+3. Applies feature patches as individual commits
+
+### Modifying Per-File Patches
+
+The recommended workflow for modifying Minecraft files:
+
+1. Make your changes to files in `paper-server/src/minecraft`
+2. Run `./gradlew fixupSourcePatches` to automatically update patches
+3. Run `./gradlew rebuildPatches` to finalize the changes
+
+<Tip>
+The `fixupSourcePatches` task automatically handles rebasing your changes into the per-file patches commit.
+</Tip>
+
+### Resolving Rebase Conflicts
+
+If `fixupSourcePatches` encounters conflicts:
+
+```bash
+cd paper-server/src/minecraft
+git rebase -i base
+```
+
+Then:
+1. Change `pick` to `edit` for the "Paper File Patches" commit
+2. Make your changes
+3. Run `git add .`
+4. Run `git commit --amend`
+5. Run `git rebase --continue`
+6. Run `./gradlew rebuildPatches` from the root directory
+
+<Note>
+The `base` ref always points to the vanilla Minecraft commit, serving as the rebase target.
+</Note>
+
+## Adding Feature Patches
+
+For large-scale changes that span multiple files:
+
+1. Modify files in `paper-server/src/minecraft`
+2. Add your changes: `git add .` (inside the minecraft directory)
+3. Create a commit: `git commit -m "Your feature description"`
+4. Rebuild patches: `./gradlew rebuildPatches` (from root directory)
+
+<Info>
+Feature patch commits are automatically converted to patch files in the patches directory during `rebuildPatches`.
+</Info>
+
+### Why Use Feature Patches?
+
+Feature patches are ideal for:
+
+- **Complex optimizations** - Multi-class performance improvements
+- **Optional features** - Changes that can be temporarily disabled
+- **Experimental changes** - Features still under development
+- **Update safety** - Patches that can be dropped during Minecraft updates
+
+## Modifying Existing Feature Patches
+
+### Fixup Method (Automatic)
+
+```bash
+# Make your changes
+git commit -a --fixup <hash-of-patch-to-fix>
+
+# Use 'file' as the hash to fix per-file patches
+git commit -a --fixup file
+
+# Rebase with autosquash
+git rebase -i --autosquash base
+
+# Rebuild patches
+./gradlew rebuildPatches
+```
+
+<Accordion title="Manual Fixup Method">
+1. Make your changes
+2. Create a temporary commit
+3. Run `git rebase -i base`
+4. Move your commit below the patch you want to modify
+5. Change `pick` to `fixup` (merge without message) or `squash` (merge with message)
+6. Save and complete the rebase
+7. Run `./gradlew rebuildPatches`
+</Accordion>
+
+## Patch Formatting Standards
+
+All modifications to vanilla Minecraft files must be marked with comments:
+
+### Single-line changes
+```java
+entity.getWorld().dontBeStupid(); // Paper - Move away from beStupid()
+```
+
+### Multi-line changes
+```java
+// Paper start - Use plugin-set spawn
+// entity.getWorld().explode(entity.getWorld().getSpawn());
+Location spawnLocation = ((CraftWorld) entity.getWorld()).getSpawnLocation();
+entity.getWorld().explode(new BlockPosition(spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ()));
+// Paper end - Use plugin-set spawn
+```
+
+<Note>
+These comments are critical for tracking changes across files and remembering their purpose years later.
+</Note>
+
+## Import Handling
+
+When adding new imports to vanilla Minecraft classes:
+
+- **Prefer fully qualified names** for types used infrequently
+- **Add imports with comments** if a type is used many times
+- **Avoid import section conflicts** by using FQN when possible
+
+```java
+public class SomeVanillaClass {
+    // Use FQN instead of adding import
+    public final org.bukkit.Location newLocation; // Paper - add location
+}
+```
+
+## Gradle Tasks Reference
+
+| Task | Purpose |
+|------|--------|
+| `applyPatches` | Apply all patches to Minecraft source |
+| `rebuildPatches` | Convert commits back to patch files |
+| `fixupSourcePatches` | Automatically update per-file patches |
+
+<Tip>
+On Windows, omit the `./` prefix from gradlew commands (use `gradlew` instead of `./gradlew`).
+</Tip>

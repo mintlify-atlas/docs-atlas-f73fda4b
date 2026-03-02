@@ -1,0 +1,151 @@
+---
+title: 'Introduction to Paper'
+description: 'The most widely used, high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies'
+---
+
+# Welcome to Paper
+
+Paper is the most widely used, high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies. Built on top of Spigot and CraftBukkit, Paper provides an extensive plugin API and numerous performance optimizations that make it the preferred choice for server administrators and plugin developers.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="#getting-started">
+    Download and run Paper in minutes
+  </Card>
+  <Card title="Features" icon="sparkles" href="/features">
+    Explore Paper's extensive feature set
+  </Card>
+  <Card title="Plugin Development" icon="code" href="#plugin-api">
+    Build plugins with the Paper API
+  </Card>
+  <Card title="Comparison" icon="scale-balanced" href="/comparison">
+    See how Paper compares to alternatives
+  </Card>
+</CardGroup>
+
+## What Makes Paper Special?
+
+Paper extends Spigot and CraftBukkit with hundreds of improvements, bug fixes, and optimizations that Mojang has not implemented in vanilla Minecraft.
+
+### Performance First
+
+Paper includes extensive performance optimizations for:
+- **Chunk loading and generation** - Faster world loading and exploration
+- **Entity processing** - Optimized entity AI and pathfinding
+- **Redstone mechanics** - Improved redstone performance
+- **Mob spawning** - Efficient mob spawn algorithms
+
+<Info>
+  Paper requires **Java 21** to run. Download it from [Adoptium](https://adoptium.net/) if you don't have it installed.
+</Info>
+
+### Extensive Plugin API
+
+Paper provides a comprehensive API that extends both Bukkit and Spigot:
+
+- **Event System** - Listen to and modify gameplay events
+- **Adventure Components** - Modern text and chat API
+- **Entity AI Customization** - Control mob behaviors
+- **Registry Access** - Work with Minecraft's data-driven content
+- **World Configuration** - Per-world settings and customization
+
+## Getting Started
+
+### For Server Administrators
+
+1. **Download Paper** from the [official downloads page](https://papermc.io/downloads/paper)
+2. **Run the server** using the Paperclip jar:
+
+```bash
+java -Xms4G -Xmx4G -jar paper.jar --nogui
+```
+
+3. **Configure your server** by editing `paper-global.yml` and `paper-world-defaults.yml`
+
+<Tip>
+  For detailed server administration guides, visit [docs.papermc.io](https://docs.papermc.io)
+</Tip>
+
+### For Plugin Developers
+
+Add Paper to your project using Maven or Gradle:
+
+<CodeGroup>
+```xml Maven
+<repository>
+    <id>papermc</id>
+    <url>https://repo.papermc.io/repository/maven-public/</url>
+</repository>
+
+<dependency>
+    <groupId>io.papermc.paper</groupId>
+    <artifactId>paper-api</artifactId>
+    <version>1.21.11-R0.1-SNAPSHOT</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+```kotlin Gradle (Kotlin DSL)
+repositories {
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+```
+</CodeGroup>
+
+<Note>
+  Access the complete Paper API javadocs at [papermc.io/javadocs](https://papermc.io/javadocs/)
+</Note>
+
+## Key Features at a Glance
+
+<CardGroup cols={3}>
+  <Card title="Event System" icon="bolt">
+    Listen to block, entity, player, world, and server events with fine-grained control
+  </Card>
+  <Card title="Adventure API" icon="message">
+    Modern text components, chat formatting, and messaging system
+  </Card>
+  <Card title="Entity AI" icon="brain">
+    Customize mob goals, behaviors, and pathfinding
+  </Card>
+  <Card title="Registry System" icon="database">
+    Access game registries for biomes, items, enchantments, and more
+  </Card>
+  <Card title="Data Components" icon="cube">
+    Work with Minecraft's data-driven item and block components
+  </Card>
+  <Card title="World Config" icon="globe">
+    Per-world configuration for spawn limits, mechanics, and optimizations
+  </Card>
+</CardGroup>
+
+## Community and Support
+
+- **Forums**: [forums.papermc.io](https://forums.papermc.io/)
+- **Discord**: [discord.gg/papermc](https://discord.gg/papermc)
+- **GitHub**: [github.com/PaperMC/Paper](https://github.com/PaperMC/Paper)
+- **Documentation**: [docs.papermc.io](https://docs.papermc.io)
+
+<Info>
+  Paper is open source and community-driven. Contributions are welcome! See the [Contributing Guide](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md) to get started.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="compass" href="/features">
+    Learn about Paper's comprehensive feature set
+  </Card>
+  <Card title="Compare Options" icon="chart-line" href="/comparison">
+    See how Paper stacks up against other server software
+  </Card>
+</CardGroup>

@@ -1,0 +1,357 @@
+---
+title: Development Environment Setup
+description: Set up your IDE and development environment for Paper development
+---
+
+This guide covers setting up your development environment for contributing to Paper, including IDE configuration, repository setup, and best practices.
+
+## Requirements
+
+Before starting, ensure you have:
+
+- **Git** - Version control system
+- **JDK 21 or later** - Required for building Paper
+  - [Adoptium](https://adoptium.net/) provides builds for most operating systems
+  - Paper uses Gradle's [Toolchains](https://docs.gradle.org/current/userguide/toolchains.html) feature
+- **IntelliJ IDEA** (recommended) - Most of the Paper team uses IntelliJ
+
+<Note>
+While other IDEs may work, IntelliJ IDEA is the recommended and officially supported IDE for Paper development.
+</Note>
+
+## Windows-Specific Setup
+
+<Warning>
+If you're on Windows, **WSL 2** (Windows Subsystem for Linux) is highly recommended for significantly faster build and patch times.
+</Warning>
+
+### Setting up WSL 2
+
+WSL 2 is available on Windows 10 version 2004 (build 19041) or higher. Check your version by running `winver`.
+
+<Steps>
+  <Step title="Install WSL 2">
+    Follow the [official Microsoft WSL installation guide](https://learn.microsoft.com/en-us/windows/wsl/install).
+  </Step>
+
+  <Step title="Install Ubuntu">
+    Install Ubuntu from the Microsoft Store (or your preferred Linux distribution).
+  </Step>
+
+  <Step title="Install development tools">
+    In your WSL terminal:
+    
+    ```bash
+    sudo apt-get update
+    sudo apt-get install git -y
+    ```
+    
+    Then install JDK 21 from [Adoptium](https://adoptium.net/).
+  </Step>
+
+  <Step title="Access WSL files in Windows">
+    You can access your WSL files from Windows File Explorer:
+    
+    ```bash
+    explorer.exe .
+    ```
+    
+    <Warning>
+    **Important:** Do NOT use the `/mnt/` directory in WSL for development. This path accesses Windows files through WSL, which is extremely slow. Always work in your WSL home directory (`~`) or other native WSL paths.
+    </Warning>
+  </Step>
+</Steps>
+
+## Repository Setup
+
+<Warning>
+**Use a Personal Fork, Not an Organization**
+
+Paper team members routinely modify PRs for quick fixes and rebases. GitHub prevents modifications to PRs from organization repositories. Always fork Paper to your personal GitHub account.
+</Warning>
+
+<Steps>
+  <Step title="Fork the repository">
+    Fork the [PaperMC/Paper](https://github.com/PaperMC/Paper) repository to your personal GitHub account.
+  </Step>
+
+  <Step title="Clone your fork">
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/Paper.git
+    cd Paper
+    ```
+  </Step>
+
+  <Step title="Add upstream remote">
+    ```bash
+    git remote add upstream https://github.com/PaperMC/Paper.git
+    ```
+    
+    This allows you to pull the latest changes from the official repository.
+  </Step>
+
+  <Step title="Apply patches">
+    ```bash
+    ./gradlew applyPatches
+    ```
+    
+    This creates the `paper-server/src/minecraft` directory with Paper's patched Minecraft source.
+  </Step>
+</Steps>
+
+## IntelliJ IDEA Configuration
+
+### Recommended Settings
+
+<Steps>
+  <Step title="Import the project">
+    Open IntelliJ IDEA and import the Paper project as a Gradle project. IntelliJ should automatically detect the Gradle configuration.
+  </Step>
+
+  <Step title="Disable sync external changes">
+    This is **critical** for performance during patch operations.
+    
+    Navigate to:
+    ```
+    Settings > Appearance & Behavior > System Settings
+    ```
+    
+    **Disable** this option:
+    - ☐ Sync external changes: Periodically when the IDE is inactive (experimental)
+    
+    <Warning>
+    When this setting is enabled, IntelliJ attempts to reindex files while patches are being applied, causing severe slowdowns and freezes.
+    </Warning>
+  </Step>
+
+  <Step title="Disable reopen projects on startup (optional)">
+    To avoid freeze loops when patches fail:
+    
+    Navigate to:
+    ```
+    Settings > Appearance & Behavior > System Settings
+    ```
+    
+    **Disable** this option:
+    - ☐ Reopen projects on startup
+    
+    This prevents IntelliJ from automatically opening Paper if patches are in a broken state.
+  </Step>
+
+  <Step title="Configure Java toolchain">
+    IntelliJ should automatically detect your JDK 21 installation through Gradle's toolchain configuration.
+    
+    Verify under:
+    ```
+    Settings > Build, Execution, Deployment > Build Tools > Gradle
+    ```
+    
+    Gradle JVM should be set to JDK 21 or use the Gradle default.
+  </Step>
+</Steps>
+
+### IDE Features
+
+<Note>
+IntelliJ IDEA provides excellent support for:
+- Git integration and conflict resolution
+- Gradle task execution
+- Debugging Paper server instances
+- Code navigation in Paper's patched Minecraft source
+- Automatic code formatting according to Paper's style
+</Note>
+
+## Understanding the Project Structure
+
+Paper uses a patch-based development workflow:
+
+```
+Paper/
+├── paper-api/           # Bukkit API implementation
+├── paper-server/        # Server implementation
+│   └── src/
+│       └── minecraft/   # Patched Minecraft source (generated)
+├── patches/             # Paper's patch files
+│   ├── api/            # API patches
+│   ├── server/         # Server patches
+│   │   ├── sources/    # Per-file patches
+│   │   ├── resources/  # Resource patches
+│   │   └── features/   # Feature patches
+├── build-data/          # Build configuration
+│   └── paper.at        # Access transformers
+└── test-plugin/         # Optional test plugin module
+```
+
+### Important Directories
+
+- **`paper-api/`** - Changes to the Bukkit API
+- **`paper-server/src/minecraft/`** - Minecraft source modifications (patch-tracked)
+- **`paper-server/src/main/`** - Non-Minecraft server code (regular Git)
+- **`patches/`** - Actual patch files that get applied
+
+<Warning>
+**Only changes in `paper-server/src/minecraft/` use the patch system.** Other directories use standard Git tracking.
+</Warning>
+
+## Development Workflow
+
+### Making Changes
+
+<Steps>
+  <Step title="Create a feature branch">
+    ```bash
+    git checkout -b my-feature-branch
+    ```
+  </Step>
+
+  <Step title="Make your changes">
+    - For API changes: Edit files in `paper-api/`
+    - For Minecraft changes: Edit files in `paper-server/src/minecraft/`
+    - For other server changes: Edit files in `paper-server/src/main/`
+  </Step>
+
+  <Step title="Test your changes">
+    ```bash
+    ./gradlew runDevServer
+    ```
+    
+    This runs a development server with your changes without creating a JAR.
+  </Step>
+
+  <Step title="Rebuild patches">
+    If you modified files in `paper-server/src/minecraft/`:
+    
+    ```bash
+    ./gradlew fixupSourcePatches
+    ./gradlew rebuildPatches
+    ```
+    
+    For other changes, commit normally with Git.
+  </Step>
+
+  <Step title="Commit your changes">
+    ```bash
+    git add .
+    git commit -m "Description of your changes"
+    ```
+  </Step>
+</Steps>
+
+### Modifying Minecraft Patches
+
+For per-file patches (most common):
+
+1. Make changes to files in `paper-server/src/minecraft/`
+2. Run `./gradlew fixupSourcePatches`
+3. Run `./gradlew rebuildPatches`
+4. Commit the updated patch files
+
+<Note>
+See the [CONTRIBUTING.md](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md) for detailed information on:
+- Handling rebase conflicts
+- Creating feature patches
+- Using fixup commits
+- Patch formatting guidelines
+</Note>
+
+## Using the Test Plugin
+
+Paper includes an optional test plugin module for testing API changes.
+
+<Steps>
+  <Step title="Enable the test plugin">
+    Enable it in `test-plugin.settings.gradle.kts` (generated after running Gradle once).
+  </Step>
+
+  <Step title="Edit the test plugin">
+    Make changes to `test-plugin/src/main/java/`.
+  </Step>
+
+  <Step title="Run with the test plugin">
+    ```bash
+    ./gradlew runDevServer
+    ```
+    
+    The run tasks automatically include the test plugin when enabled.
+  </Step>
+</Steps>
+
+## Testing API Changes Locally
+
+To test your Paper changes in external plugins:
+
+<Steps>
+  <Step title="Publish to Maven Local">
+    ```bash
+    ./gradlew publishToMavenLocal
+    ```
+  </Step>
+
+  <Step title="Configure your plugin project">
+    **For Gradle:**
+    
+    Add `mavenLocal()` as the first repository:
+    
+    ```kotlin
+    repositories {
+        mavenLocal()  // Must be first
+        maven("https://repo.papermc.io/repository/maven-public/")
+    }
+    ```
+    
+    <Warning>
+    Remove `mavenLocal()` when done testing. See the [Gradle docs](https://docs.gradle.org/current/userguide/declaring_repositories.html#sec:case-for-maven-local) for why.
+    </Warning>
+  </Step>
+
+  <Step title="Use Paper in your plugin">
+    Your plugin will now use your locally-built Paper version.
+  </Step>
+</Steps>
+
+## Git Workflow Tips
+
+### Keeping Your Fork Updated
+
+```bash
+# Fetch latest changes from upstream
+git fetch upstream
+
+# Update your main branch
+git checkout main
+git merge upstream/main
+
+# Rebase your feature branch
+git checkout my-feature-branch
+git rebase upstream/main
+```
+
+### Understanding Git Basics
+
+Paper's patch system is built on Git. If you're new to Git, review this tutorial:
+https://git-scm.com/docs/gittutorial
+
+## Common Issues
+
+### IntelliJ freezes during patch application
+
+**Solution:** Disable "Sync external changes" in IntelliJ settings (see [IntelliJ IDEA Configuration](#intellij-idea-configuration)).
+
+### Patch conflicts during rebase
+
+See the [CONTRIBUTING.md rebase conflict resolution guide](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md#resolving-rebase-conflicts).
+
+### Build fails with "JAVA_HOME not set"
+
+**Solution:** Ensure JDK 21 is installed and JAVA_HOME points to it:
+
+```bash
+export JAVA_HOME=/path/to/jdk-21
+```
+
+## Next Steps
+
+- Read the [CONTRIBUTING.md](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md) for detailed contribution guidelines
+- Learn about [code formatting and style requirements](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md#formatting)
+- Explore [available Gradle tasks](/advanced/gradle-tasks)
+- Join the [Paper Discord](https://discord.gg/papermc) for help and discussion

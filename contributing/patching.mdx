@@ -1,0 +1,330 @@
+---
+title: Creating and Modifying Patches
+description: Guide to working with Paper's patch system
+---
+
+Paper uses a patch-based system for modifying Minecraft source files. This guide explains how to create and modify patches effectively.
+
+## Understanding Patch Types
+
+Paper uses three types of patches:
+
+- **`sources`**: Per-file patches to Minecraft Java classes
+- **`resources`**: Per-file patches to Minecraft data files
+- **`features`**: Larger patches that modify multiple Minecraft classes for complex features
+
+<Info>
+  Feature patches are used for large-scale changes that can be optionally dropped during Minecraft updates. This makes updating Paper easier since these patches can be temporarily removed and reapplied later.
+</Info>
+
+## Modifying Per-File Minecraft Patches
+
+This is the most common workflow when editing Minecraft files.
+
+<Steps>
+  <Step title="Make Your Changes">
+    Edit the files in `paper-server/src/minecraft` as needed.
+  </Step>
+
+  <Step title="Fixup Source Patches">
+    Run the fixup command from the root directory:
+
+    ```bash
+    ./gradlew fixupSourcePatches
+    ```
+
+    This automatically updates the per-file patches based on your changes.
+  </Step>
+
+  <Step title="Rebuild Patches">
+    If the fixup succeeded without conflicts, rebuild all patches:
+
+    ```bash
+    ./gradlew rebuildPatches
+    ```
+  </Step>
+</Steps>
+
+### Resolving Rebase Conflicts
+
+If `fixupSourcePatches` encounters conflicts, you'll need to manually resolve them:
+
+<Steps>
+  <Step title="Stash Your Changes (Optional)">
+    If you have uncommitted changes you want to preserve:
+
+    ```bash
+    git stash
+    ```
+
+    <Info>
+      You can restore your changes later with `git stash pop`.
+    </Info>
+  </Step>
+
+  <Step title="Start Interactive Rebase">
+    Navigate to the minecraft directory and start an interactive rebase:
+
+    ```bash
+    cd paper-server/src/minecraft/java
+    git rebase -i base
+    ```
+
+    <Note>
+      If you're unfamiliar with vim (the default editor), press `:q!` and Enter to exit. Then run `export EDITOR=nano` before trying again for an easier editor.
+    </Note>
+  </Step>
+
+  <Step title="Mark Commit for Editing">
+    In the editor, replace `pick` with `edit` for the commit you want to modify (typically the first commit, `paper File Patches`). Save and close the editor.
+  </Step>
+
+  <Step title="Make Your Changes">
+    Edit the files as needed to resolve conflicts or make your modifications.
+  </Step>
+
+  <Step title="Stage and Amend">
+    Add your changes and amend the commit:
+
+    ```bash
+    git add .
+    git commit --amend
+    ```
+  </Step>
+
+  <Step title="Continue Rebase">
+    ```bash
+    git rebase --continue
+    ```
+  </Step>
+
+  <Step title="Rebuild Patches">
+    Return to the root directory and rebuild:
+
+    ```bash
+    cd ../../../..
+    ./gradlew rebuildPatches
+    ```
+  </Step>
+</Steps>
+
+## Adding Larger Feature Patches
+
+Feature patches are used for substantial changes that are difficult to track in per-file patches.
+
+<Warning>
+  Most contributions won't require feature patches. Only use them for large-scale optimizations or features that can be optionally dropped during updates.
+</Warning>
+
+<Steps>
+  <Step title="Make Your Changes">
+    Modify files in `paper-server/src/minecraft` as needed.
+  </Step>
+
+  <Step title="Stage Your Changes">
+    ```bash
+    cd paper-server/src/minecraft
+    git add .
+    ```
+  </Step>
+
+  <Step title="Create a Commit">
+    ```bash
+    git commit -m "Your descriptive patch message"
+    ```
+
+    <Note>
+      If you have specific implementation details to document, include them in the commit message or in code comments.
+    </Note>
+  </Step>
+
+  <Step title="Rebuild Patches">
+    Return to the root directory and rebuild:
+
+    ```bash
+    cd ../../..
+    ./gradlew rebuildPatches
+    ```
+
+    Your commit will be converted into a patch file that you can submit in a PR.
+  </Step>
+</Steps>
+
+## Modifying Larger Feature Patches
+
+You can modify existing feature patches using either the manual rebase method (see [Resolving Rebase Conflicts](#resolving-rebase-conflicts)) or the fixup method below.
+
+### Fixup Method (Manual)
+
+<Steps>
+  <Step title="Make Your Changes">
+    Edit the necessary files.
+  </Step>
+
+  <Step title="Create Temporary Commit">
+    ```bash
+    git commit -a -m "temp"
+    ```
+  </Step>
+
+  <Step title="Interactive Rebase">
+    ```bash
+    git rebase -i base
+    ```
+
+    Move (cut and paste) your temporary commit under the patch you want to modify.
+  </Step>
+
+  <Step title="Change Pick to Fixup/Squash">
+    - `f` or `fixup`: Merge changes without modifying the commit message
+    - `s` or `squash`: Merge changes and edit the commit message
+  </Step>
+
+  <Step title="Rebuild Patches">
+    ```bash
+    ./gradlew rebuildPatches
+    ```
+  </Step>
+</Steps>
+
+### Fixup Method (Automatic)
+
+<Steps>
+  <Step title="Make Your Changes">
+    Edit the necessary files.
+  </Step>
+
+  <Step title="Create Fixup Commit">
+    ```bash
+    git commit -a --fixup <hash-of-patch-to-fix>
+    ```
+
+    <Info>
+      For per-file patches, use `git commit -a --fixup file`. Use `--squash` instead of `--fixup` if you want to modify the commit message too.
+    </Info>
+
+    You can find the hash using:
+    - `git log` or `git blame`
+    - Your IDE's git integration
+    - Commit subject: `git commit -a --fixup "Subject of Patch name"`
+  </Step>
+
+  <Step title="Autosquash Rebase">
+    ```bash
+    git rebase -i --autosquash base
+    ```
+
+    This automatically moves your fixup commit to the correct location. Just save and close the editor.
+  </Step>
+
+  <Step title="Rebuild Patches">
+    ```bash
+    ./gradlew rebuildPatches
+    ```
+  </Step>
+</Steps>
+
+## Rebasing Your PR
+
+When you need to update your PR with the latest changes from `main`:
+
+<Note>
+  These steps assume `origin` is your fork and `upstream` is the official PaperMC repository.
+</Note>
+
+<Steps>
+  <Step title="Fetch Upstream Changes">
+    ```bash
+    git fetch upstream
+    ```
+  </Step>
+
+  <Step title="Rebase Your Branch">
+    ```bash
+    git switch patch-branch
+    git rebase upstream/main
+    ```
+  </Step>
+
+  <Step title="Apply Patches">
+    ```bash
+    ./gradlew applyPatches
+    ```
+  </Step>
+
+  <Step title="Fix Conflicts">
+    If there are conflicts, resolve them following the steps in [Resolving Rebase Conflicts](#resolving-rebase-conflicts).
+  </Step>
+
+  <Step title="Ensure Patch Order (Feature Patches Only)">
+    If your PR creates new feature patches, ensure your patch is the last commit:
+
+    **Option A**: Rename the patch file with a high number (e.g., `9999-Patch-to-add-some-new-stuff.patch`) and re-apply patches.
+
+    **Option B**: Run interactive rebase and move commits to the end:
+    ```bash
+    git rebase --interactive base
+    ```
+  </Step>
+
+  <Step title="Rebuild Patches">
+    ```bash
+    ./gradlew rebuildPatches
+    ```
+  </Step>
+
+  <Step title="Commit Modified Patches">
+    ```bash
+    git add .
+    git commit -m "Rebase on upstream/main"
+    ```
+  </Step>
+
+  <Step title="Force Push">
+    ```bash
+    git push --force
+    ```
+
+    <Warning>
+      Double-check that you're not deleting any of your commits or changes!
+    </Warning>
+  </Step>
+</Steps>
+
+## Access Transformers
+
+Sometimes Vanilla code contains fields, methods, or types with insufficient visibility (e.g., private fields you need to access).
+
+Paper uses **Access Transformers** (ATs) to change visibility or remove final modifiers without directly patching every reference.
+
+<Steps>
+  <Step title="Edit the AT File">
+    Open `build-data/paper.at` and add your access transformer.
+
+    <Info>
+      Read about the AT format in the [Access Transformers documentation](https://mcforge.readthedocs.io/en/latest/advanced/accesstransformers/#access-modifiers).
+    </Info>
+  </Step>
+
+  <Step title="Apply Patches">
+    ```bash
+    ./gradlew applyPatches
+    ```
+
+    The access transformers will be applied automatically.
+  </Step>
+</Steps>
+
+## Common Gradle Commands
+
+| Command | Description |
+|---------|-------------|
+| `./gradlew applyPatches` | Apply all patches to set up the development environment |
+| `./gradlew fixupSourcePatches` | Update per-file patches based on your changes |
+| `./gradlew rebuildPatches` | Rebuild all patches after making changes |
+| `./gradlew runDev` | Run a test server with your changes |
+| `./gradlew publishToMavenLocal` | Install Paper to your local Maven repository for testing |
+
+<Warning>
+  Never use interactive git commands (like `git rebase -i` or `git add -i`) with the `-i` flag in automated scripts, as they require interactive input.
+</Warning>

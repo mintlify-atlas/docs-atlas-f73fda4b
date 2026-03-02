@@ -1,0 +1,200 @@
+---
+title: Server Performance
+description: Overview of Paper's performance optimizations and configuration options
+---
+
+Paper is a high-performance Minecraft server that aims to fix gameplay and mechanics inconsistencies while providing significant performance improvements over vanilla Minecraft servers.
+
+## Performance Philosophy
+
+Paper's performance improvements focus on three key areas:
+
+1. **Chunk loading and generation** - Optimized multi-threaded chunk system
+2. **Entity management** - Intelligent entity activation and ticking
+3. **Network optimization** - Efficient packet handling and chunk sending
+
+## Core Performance Features
+
+### Multi-threaded Chunk System
+
+Paper uses the Moonrise chunk system, which provides parallel chunk loading and generation through worker and I/O thread pools.
+
+<Note>
+The Moonrise system automatically scales worker threads based on your CPU core count. Manual configuration is available in `config/paper-global.yml`.
+</Note>
+
+**Configuration** (`config/paper-global.yml`):
+
+```yaml
+chunk-system:
+  io-threads: -1      # Auto-configured (default)
+  worker-threads: -1  # Auto-configured (default)
+```
+
+Thread calculation logic:
+- **Default worker threads**: `(CPU cores / 2) / 2` for systems with more than 4 cores
+- **Minimum**: 1 worker thread on low-core systems
+- **I/O threads**: At least 1 thread for disk operations
+
+<Tip>
+For servers with 8+ CPU cores, Paper automatically configures multiple worker threads to parallelize chunk operations. The default auto-configuration is optimal for most setups.
+</Tip>
+
+### Entity Activation Range
+
+Paper inherits Spigot's Entity Activation Range (EAR) system, which reduces entity ticking for entities far from players.
+
+**Configuration** (`config/spigot.yml`):
+
+```yaml
+world-settings:
+  default:
+    entity-activation-range:
+      animals: 32
+      monsters: 32
+      raiders: 64
+      misc: 16
+      water: 16
+      villagers: 32
+      flying-monsters: 32
+```
+
+Entities beyond these ranges are "activated" less frequently, significantly reducing CPU usage in areas with many entities.
+
+<Warning>
+Reducing activation ranges too much may cause gameplay issues, such as mobs not reacting to players or automatic farms breaking.
+</Warning>
+
+### Per-Player Mob Spawning
+
+Paper implements per-player mob spawning, which distributes mob spawning more evenly across players.
+
+**Configuration** (`config/paper-world-defaults.yml`):
+
+```yaml
+entities:
+  spawning:
+    per-player-mob-spawns: true
+```
+
+This prevents mob cap saturation in populated areas and improves spawn rates for players in remote locations.
+
+## Performance Monitoring
+
+### Using Spark
+
+Paper includes Spark, a performance profiler, enabled by default.
+
+**Configuration** (`config/paper-global.yml`):
+
+```yaml
+spark:
+  enabled: true
+  enable-immediately: false
+```
+
+<Tip>
+Use `/spark profiler start` to begin profiling server performance. After 30-60 seconds, use `/spark profiler stop` to generate a detailed performance report.
+</Tip>
+
+### View Distance vs Simulation Distance
+
+Paper distinguishes between view distance (what chunks players can see) and simulation distance (what chunks are actively ticked).
+
+**Configuration** (`config/spigot.yml`):
+
+```yaml
+world-settings:
+  default:
+    view-distance: 10
+    simulation-distance: 10
+```
+
+- **View distance**: Controls chunk rendering (range: 3-32)
+- **Simulation distance**: Controls chunk ticking for entities, redstone, crops
+
+<Note>
+Reducing simulation distance while maintaining view distance provides visual quality while improving performance.
+</Note>
+
+## Optimization Best Practices
+
+### 1. Configure Autosave Intervals
+
+Reduce autosave frequency to minimize I/O spikes:
+
+```yaml
+chunks:
+  auto-save-interval: 6000  # 5 minutes (default)
+  max-auto-save-chunks-per-tick: 24
+```
+
+### 2. Optimize Hoppers
+
+**Configuration** (`config/spigot.yml`):
+
+```yaml
+world-settings:
+  default:
+    ticks-per:
+      hopper-transfer: 8
+      hopper-check: 1
+    hopper-amount: 1
+```
+
+Increasing `hopper-transfer` reduces hopper checks per second.
+
+### 3. Entity Tracking Range
+
+Reduce entity tracking ranges to decrease network usage:
+
+```yaml
+entity-tracking-range:
+  players: 128
+  animals: 96
+  monsters: 96
+  misc: 96
+  display: 128
+  other: 64
+```
+
+### 4. Disable Unused Features
+
+Disable features you don't need:
+
+```yaml
+entities:
+  armor-stands:
+    tick: true  # Set to false if armor stands are purely decorative
+  markers:
+    tick: true  # Set to false if not using marker entities
+```
+
+## Configuration Files Reference
+
+Paper uses multiple configuration files:
+
+| File | Scope | Purpose |
+|------|-------|----------|
+| `config/paper-global.yml` | Global | Server-wide settings (chunk system, network) |
+| `config/paper-world-defaults.yml` | Per-world | World-specific defaults (entities, chunks) |
+| `config/spigot.yml` | Per-world | Legacy Spigot settings (activation range, tracking) |
+
+<Tip>
+Start with default configurations and adjust based on `/spark` profiler results. Measure the impact of each change.
+</Tip>
+
+## Hardware Recommendations
+
+For optimal Paper performance:
+
+- **CPU**: Modern CPU with high single-thread performance
+- **RAM**: 6-10GB for 10-20 players, 10-16GB for 50+ players
+- **Storage**: NVMe SSD strongly recommended for chunk I/O
+- **Network**: Low-latency connection (< 50ms to players)
+
+## See Also
+
+- [Chunk Loading Optimization](/optimization/chunk-loading)
+- [Entity Performance](/optimization/entity-performance)
+- [Network Optimization](/optimization/network)

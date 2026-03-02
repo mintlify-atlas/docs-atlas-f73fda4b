@@ -1,0 +1,262 @@
+---
+title: 'Server Properties'
+description: 'Standard Minecraft server.properties configuration reference'
+---
+
+The `server.properties` file contains the standard Minecraft server configuration options. This file is located in your server's root directory and is shared across all server implementations.
+
+## Location
+
+```
+server-root/
+└── server.properties
+```
+
+## Core Settings
+
+<AccordionGroup>
+  <Accordion title="Network & Connection">
+    <ParamField path="server-port" type="integer" default="25565">
+      The port number the server listens on for incoming connections.
+    </ParamField>
+
+    <ParamField path="server-ip" type="string" default="">
+      The IP address the server should bind to. Leave empty to bind to all available interfaces.
+    </ParamField>
+
+    <ParamField path="max-players" type="integer" default="20">
+      Maximum number of players that can connect simultaneously.
+    </ParamField>
+
+    <ParamField path="network-compression-threshold" type="integer" default="256">
+      Packets larger than this size (in bytes) will be compressed. Set to -1 to disable compression.
+      
+      <Tip>Lower values increase CPU usage but reduce bandwidth. Higher values do the opposite.</Tip>
+    </ParamField>
+
+    <ParamField path="online-mode" type="boolean" default="true">
+      Whether to authenticate players with Mojang's authentication servers.
+      
+      <Warning>Only disable this if you're using a proxy with its own authentication (BungeeCord/Velocity).</Warning>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="World Settings">
+    <ParamField path="level-name" type="string" default="world">
+      The name of the world folder. The server will create this folder if it doesn't exist.
+    </ParamField>
+
+    <ParamField path="level-seed" type="string" default="">
+      The seed for world generation. Leave empty for a random seed.
+    </ParamField>
+
+    <ParamField path="level-type" type="string" default="minecraft:normal">
+      The type of world to generate. Options:
+      - `minecraft:normal` - Standard world generation
+      - `minecraft:flat` - Superflat world
+      - `minecraft:large_biomes` - Larger biome sizes
+      - `minecraft:amplified` - Extreme terrain generation
+    </ParamField>
+
+    <ParamField path="generator-settings" type="string" default="">
+      JSON settings for custom world generation. Used with custom world types.
+    </ParamField>
+
+    <ParamField path="allow-nether" type="boolean" default="true">
+      Whether the Nether dimension is enabled.
+      
+      <Note>Paper also provides a global configuration option `misc.enable-nether` for this setting.</Note>
+    </ParamField>
+
+    <ParamField path="spawn-protection" type="integer" default="16">
+      Radius in blocks around spawn where only operators can place/break blocks. Set to 0 to disable.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Gameplay Settings">
+    <ParamField path="difficulty" type="string" default="easy">
+      The world difficulty level: `peaceful`, `easy`, `normal`, or `hard`.
+    </ParamField>
+
+    <ParamField path="hardcore" type="boolean" default="false">
+      If true, players are banned upon death and the difficulty is locked to hard.
+    </ParamField>
+
+    <ParamField path="pvp" type="boolean" default="true">
+      Enable player versus player combat.
+    </ParamField>
+
+    <ParamField path="gamemode" type="string" default="survival">
+      Default gamemode for new players: `survival`, `creative`, `adventure`, or `spectator`.
+    </ParamField>
+
+    <ParamField path="force-gamemode" type="boolean" default="false">
+      Force players to join in the default gamemode.
+    </ParamField>
+
+    <ParamField path="max-world-size" type="integer" default="29999984">
+      Maximum radius of the world border in blocks. The diameter will be 2x this value.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="View & Simulation Distance">
+    <ParamField path="view-distance" type="integer" default="10">
+      The number of chunks sent to players (radius around the player). Higher values increase server load.
+      
+      <Tip>For better performance, use values between 6-10. Players can set lower values in their client.</Tip>
+    </ParamField>
+
+    <ParamField path="simulation-distance" type="integer" default="10">
+      The number of chunks around players where mobs spawn and entities tick. Cannot exceed view-distance.
+    </ParamField>
+
+    <ParamField path="entity-broadcast-range-percentage" type="integer" default="100">
+      Percentage to scale entity tracking range. Lower values reduce bandwidth but may cause entities to disappear.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Resource Pack">
+    <ParamField path="resource-pack" type="string" default="">
+      URL to a resource pack. Players will be prompted to download it.
+    </ParamField>
+
+    <ParamField path="resource-pack-sha1" type="string" default="">
+      SHA-1 hash of the resource pack for verification.
+    </ParamField>
+
+    <ParamField path="resource-pack-prompt" type="string" default="">
+      Custom message shown to players when prompted to download the resource pack.
+    </ParamField>
+
+    <ParamField path="require-resource-pack" type="boolean" default="false">
+      If true, players must accept the resource pack to join the server.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Performance & Technical">
+    <ParamField path="max-tick-time" type="integer" default="60000">
+      Maximum time (in milliseconds) a single tick can take before the server watchdog triggers.
+      
+      <Warning>Set to -1 to disable the watchdog. Only do this if you understand the implications.</Warning>
+    </ParamField>
+
+    <ParamField path="sync-chunk-writes" type="boolean" default="true">
+      Whether chunk writes should be synchronous. Disabling may improve performance but risks data loss.
+    </ParamField>
+
+    <ParamField path="enable-command-block" type="boolean" default="false">
+      Enable command blocks on the server.
+    </ParamField>
+
+    <ParamField path="function-permission-level" type="integer" default="2">
+      Permission level for functions. Levels: 1-4 (1=bypass spawn protection, 2=use command blocks, 3=operator commands, 4=all commands).
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Server Information">
+    <ParamField path="motd" type="string" default="A Minecraft Server">
+      Message of the day displayed in the server list. Supports color codes with §.
+    </ParamField>
+
+    <ParamField path="server-name" type="string" default="Unknown Server">
+      The name of the server shown in various contexts.
+    </ParamField>
+
+    <ParamField path="enable-status" type="boolean" default="true">
+      Whether the server appears in the server list and responds to status requests.
+    </ParamField>
+
+    <ParamField path="hide-online-players" type="boolean" default="false">
+      Hide player list from server queries.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Authentication & Security">
+    <ParamField path="enforce-secure-profile" type="boolean" default="true">
+      Require players to have signed chat messages (1.19.1+).
+    </ParamField>
+
+    <ParamField path="prevent-proxy-connections" type="boolean" default="false">
+      Block players connecting through proxies.
+      
+      <Warning>Do not enable if using BungeeCord or Velocity!</Warning>
+    </ParamField>
+
+    <ParamField path="enforce-whitelist" type="boolean" default="false">
+      Kick players not on the whitelist immediately.
+    </ParamField>
+
+    <ParamField path="white-list" type="boolean" default="false">
+      Enable the whitelist system.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Advanced Options">
+    <ParamField path="enable-jmx-monitoring" type="boolean" default="false">
+      Enable JMX monitoring for advanced server metrics.
+    </ParamField>
+
+    <ParamField path="enable-rcon" type="boolean" default="false">
+      Enable remote console (RCON) for server management.
+    </ParamField>
+
+    <ParamField path="rcon.port" type="integer" default="25575">
+      Port for RCON connections.
+    </ParamField>
+
+    <ParamField path="rcon.password" type="string" default="">
+      Password for RCON authentication.
+      
+      <Warning>Use a strong password and restrict access to trusted IPs only!</Warning>
+    </ParamField>
+
+    <ParamField path="broadcast-rcon-to-ops" type="boolean" default="true">
+      Send RCON output to online operators.
+    </ParamField>
+
+    <ParamField path="broadcast-console-to-ops" type="boolean" default="true">
+      Send console command output to online operators.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+## Example Configuration
+
+```properties
+# Network
+server-port=25565
+max-players=100
+online-mode=true
+network-compression-threshold=256
+
+# World
+level-name=world
+difficulty=normal
+gamemode=survival
+allow-nether=true
+
+# Performance
+view-distance=8
+simulation-distance=8
+max-tick-time=60000
+sync-chunk-writes=true
+
+# Server Info
+motd=Welcome to my Paper server!
+enable-status=true
+```
+
+## Related Configuration
+
+<CardGroup cols={2}>
+  <Card title="Paper Global Config" icon="globe" href="/administration/paper-configuration">
+    Server-wide Paper-specific settings
+  </Card>
+  <Card title="World Configuration" icon="earth-americas" href="/administration/world-configuration">
+    Per-world Paper configuration
+  </Card>
+</CardGroup>
+
+<Note>
+Changes to `server.properties` require a server restart to take effect, except for certain settings that can be changed with commands (like difficulty).
+</Note>

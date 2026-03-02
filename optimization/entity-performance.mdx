@@ -1,0 +1,531 @@
+---
+title: Entity Performance
+description: Optimize entity ticking and activation for better server performance
+---
+
+Entities are one of the most significant performance consumers in Minecraft servers. Paper provides multiple systems to optimize entity processing while maintaining gameplay quality.
+
+## Entity Activation Range
+
+Entity Activation Range (EAR) is a performance feature that reduces tick rate for entities far from players. Inactive entities are "activated" periodically rather than every tick.
+
+### How Activation Range Works
+
+Entities are categorized into activation types:
+
+```java
+// From ActivationType.java
+public enum ActivationType {
+    WATER,           // Fish, dolphins, etc.
+    FLYING_MONSTER,  // Ghasts, phantoms
+    VILLAGER,        // Villagers
+    MONSTER,         // Hostile mobs
+    ANIMAL,          // Passive mobs
+    RAIDER,          // Pillagers, raiders
+    MISC             // Other entities
+}
+```
+
+Each type has its own activation range configuration.
+
+### Configuration
+
+**File**: `config/spigot.yml`
+
+```yaml
+world-settings:
+  default:
+    entity-activation-range:
+      animals: 32
+      monsters: 32
+      raiders: 64
+      misc: 16
+      water: 16
+      villagers: 32
+      flying-monsters: 32
+      tick-inactive-villagers: true
+      ignore-spectators: false
+```
+
+#### Activation Range Values
+
+| Entity Type | Default | Recommended Low | Recommended High |
+|-------------|---------|-----------------|------------------|
+| animals | 32 | 24 | 48 |
+| monsters | 32 | 24 | 48 |
+| raiders | 64 | 48 | 96 |
+| misc | 16 | 12 | 24 |
+| water | 16 | 12 | 24 |
+| villagers | 32 | 24 | 48 |
+| flying-monsters | 32 | 24 | 64 |
+
+<Warning>
+Reducing ranges below recommended minimums can break farms, mob AI, and gameplay mechanics.
+</Warning>
+
+### Wake-Up Inactive Entities
+
+Periodically "wake up" inactive entities to maintain some activity:
+
+```yaml
+entity-activation-range:
+  wake-up-inactive:
+    animals-max-per-tick: 4
+    animals-every: 1200        # 60 seconds
+    animals-for: 100           # 5 seconds
+    
+    monsters-max-per-tick: 8
+    monsters-every: 400        # 20 seconds
+    monsters-for: 100
+    
+    villagers-max-per-tick: 4
+    villagers-every: 600       # 30 seconds
+    villagers-for: 100
+    
+    flying-monsters-max-per-tick: 8
+    flying-monsters-every: 200 # 10 seconds
+    flying-monsters-for: 100
+```
+
+<Accordion title="Wake-Up Configuration Explained">
+**`-max-per-tick`**: How many entities to wake up per tick
+
+**`-every`**: How often (in ticks) to wake entities (20 ticks = 1 second)
+
+**`-for`**: How long (in ticks) entities stay awake
+
+Example: `animals-every: 1200` with `animals-for: 100` means animals wake for 5 seconds every 60 seconds.
+</Accordion>
+
+### Villager-Specific Settings
+
+```yaml
+entity-activation-range:
+  villagers-work-immunity-after: 100  # 5 seconds
+  villagers-work-immunity-for: 20     # 1 second
+  villagers-active-for-panic: true
+  tick-inactive-villagers: true
+```
+
+- **villagers-work-immunity-after**: Villagers stay active for this long after working
+- **villagers-active-for-panic**: Always activate panicking villagers
+- **tick-inactive-villagers**: Enable to maintain villager AI when inactive
+
+<Tip>
+Set `tick-inactive-villagers: true` to prevent villager trading halls from breaking. Disable for pure performance if you don't use villagers.
+</Tip>
+
+## Entity Tracking Range
+
+Controls the distance at which players receive entity updates. Entities beyond tracking range are not sent to clients.
+
+**File**: `config/spigot.yml`
+
+```yaml
+world-settings:
+  default:
+    entity-tracking-range:
+      players: 128
+      animals: 96
+      monsters: 96
+      misc: 96
+      display: 128
+      other: 64
+```
+
+### Tracking Range vs Activation Range
+
+- **Activation Range**: Controls server-side entity ticking
+- **Tracking Range**: Controls network updates to clients
+
+<Note>
+Tracking range should generally be larger than activation range. If tracking range is smaller, players won't see entities that are still being ticked.
+</Note>
+
+### Y-Axis Tracking Range
+
+Paper adds vertical tracking range limits:
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  tracking-range-y:
+    enabled: false
+    player: default
+    animal: default
+    monster: default
+    misc: default
+    display: default
+    other: default
+```
+
+Enable to limit vertical tracking distance (useful for tall builds):
+
+```yaml
+entities:
+  tracking-range-y:
+    enabled: true
+    animal: 32
+    monster: 32
+    misc: 16
+```
+
+## Per-Player Mob Spawning
+
+Paper's per-player mob spawning distributes mob caps across individual players rather than globally.
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  spawning:
+    per-player-mob-spawns: true
+```
+
+**Benefits**:
+- More consistent spawning for all players
+- Prevents spawn camping at mob farms
+- Better mob distribution across the world
+
+**Comparison**:
+
+| Feature | Vanilla | Per-Player |
+|---------|---------|------------|
+| Spawn distribution | Global cap | Per-player cap |
+| Player in populated area | Gets most spawns | Fair share |
+| Player exploring alone | Few spawns | Full spawn rate |
+
+<Tip>
+Keep enabled for survival servers. May disable for specialized farm servers where global caps are preferred.
+</Tip>
+
+## Mob Spawn Limits
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  spawning:
+    spawn-limits:
+      ambient: -1
+      axolotls: -1
+      creature: -1
+      monster: -1
+      underground_water_creature: -1
+      water_ambient: -1
+      water_creature: -1
+```
+
+Set to `-1` for default Minecraft limits, or specify custom limits:
+
+```yaml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 50   # Reduce hostile mob count
+      creature: 10  # Reduce animals
+      water_creature: 5
+```
+
+<Warning>
+Lowering spawn limits below defaults significantly changes gameplay balance.
+</Warning>
+
+## Ticks Per Spawn
+
+Control spawn attempt frequency per mob category:
+
+```yaml
+entities:
+  spawning:
+    ticks-per-spawn:
+      ambient: -1
+      axolotls: -1
+      creature: -1
+      monster: -1
+      underground_water_creature: -1
+      water_ambient: -1
+      water_creature: -1
+```
+
+**Default values** (from vanilla):
+- **monster**: 1 tick (every tick)
+- **creature**: 400 ticks (20 seconds)
+- **water_creature**: 1 tick
+
+<Accordion title="Spawn Rate Optimization Example">
+Reduce creature spawn frequency to improve performance:
+
+```yaml
+ticks-per-spawn:
+  creature: 600  # Spawn every 30 seconds instead of 20
+  ambient: 600   # Reduce bat spawns
+```
+
+Higher values = fewer spawn attempts = better performance but fewer mobs.
+</Accordion>
+
+## Entity Behavior Optimizations
+
+**File**: `config/paper-world-defaults.yml`
+
+### Armor Stands
+
+```yaml
+entities:
+  armor-stands:
+    do-collision-entity-lookups: true
+    tick: true
+```
+
+- **do-collision-entity-lookups**: Disable if armor stands are purely decorative
+- **tick**: Set to `false` for static armor stands (significant performance boost)
+
+<Tip>
+For servers with hundreds of decorative armor stands, set `tick: false` for major performance gains.
+</Tip>
+
+### Markers
+
+```yaml
+entities:
+  markers:
+    tick: true
+```
+
+Marker entities are invisible entities for technical use. Disable ticking if not using them.
+
+### Pathfinding Optimization
+
+```yaml
+entities:
+  behavior:
+    stuck-entity-poi-retry-delay: 200  # 10 seconds
+```
+
+Reduces pathfinding performance impact when entities can't reach their destination.
+
+- **Default**: `200` ticks (10 seconds)
+- **Disabled**: Set to `-1`
+
+## Experience Orb Optimization
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  behavior:
+    experience-merge-max-value: -1
+```
+
+Set to a value (e.g., `100`) to limit XP orb merging:
+
+```yaml
+entities:
+  behavior:
+    experience-merge-max-value: 100  # Merge up to 100 XP per orb
+```
+
+**File**: `config/paper-global.yml`
+
+```yaml
+misc:
+  xp-orb-groups-per-area: default
+```
+
+Limit XP orb groups in an area to reduce entity count.
+
+## Despawn Ranges
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  spawning:
+    despawn-ranges:
+      ambient:
+        hard: default
+        soft: default
+      axolotls:
+        hard: default
+        soft: default
+      creature:
+        hard: default
+        soft: default
+      monster:
+        hard: default
+        soft: default
+    despawn-range-shape: ellipsoid  # or 'sphere'
+```
+
+- **Soft range**: Entities have a chance to despawn
+- **Hard range**: Entities always despawn
+
+Custom example:
+
+```yaml
+despawn-ranges:
+  monster:
+    hard: 96   # Despawn beyond 96 blocks
+    soft: 64   # Start despawn chance at 64 blocks
+  creature:
+    hard: 96
+    soft: 48
+```
+
+## Entity-Specific Optimizations
+
+### Item Despawn Rates
+
+**File**: `config/spigot.yml`
+
+```yaml
+world-settings:
+  default:
+    item-despawn-rate: 6000  # 5 minutes
+```
+
+**File**: `config/paper-world-defaults.yml` (alternative despawn rates):
+
+```yaml
+entities:
+  spawning:
+    alt-item-despawn-rate:
+      enabled: true
+      items:
+        cobblestone: 300  # 15 seconds for cobblestone
+        dirt: 300
+        netherrack: 300
+```
+
+### Arrow Despawn Rates
+
+**File**: `config/paper-world-defaults.yml`
+
+```yaml
+entities:
+  spawning:
+    non-player-arrow-despawn-rate: default  # Inherits from spigot.yml
+    creative-arrow-despawn-rate: default
+    max-arrow-despawn-invulnerability: 200  # 10 seconds
+```
+
+Custom configuration:
+
+```yaml
+entities:
+  spawning:
+    non-player-arrow-despawn-rate: 100  # 5 seconds for skeleton arrows
+    creative-arrow-despawn-rate: 100
+```
+
+## Monitoring Entity Performance
+
+### Using Spark
+
+Profile entity ticking:
+
+```bash
+/spark profiler start
+# Wait 60 seconds
+/spark profiler stop
+```
+
+Look for:
+- `tickEntity` - Entity AI and physics
+- `ActivationRange` - EAR system performance
+
+### Count Entities
+
+```bash
+/minecraft:execute as @e run say 1
+```
+
+Or use a plugin like Essentials:
+
+```bash
+/minecraft:entitycount
+```
+
+## Optimization Strategies
+
+### 1. Aggressive Performance (PvP/Minigames)
+
+```yaml
+# config/spigot.yml
+entity-activation-range:
+  animals: 16
+  monsters: 24
+  raiders: 48
+  misc: 8
+  water: 8
+  villagers: 16
+  flying-monsters: 24
+
+# config/paper-world-defaults.yml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 40
+      creature: 5
+      water_creature: 3
+```
+
+### 2. Balanced (Survival)
+
+```yaml
+# Use defaults, enable optimizations:
+entities:
+  armor-stands:
+    tick: false  # If using decorative armor stands
+  spawning:
+    per-player-mob-spawns: true
+  behavior:
+    stuck-entity-poi-retry-delay: 200
+```
+
+### 3. Vanilla+ (Minimal Changes)
+
+```yaml
+# Keep activation ranges at defaults
+# Only enable per-player spawning
+entities:
+  spawning:
+    per-player-mob-spawns: true
+```
+
+## Troubleshooting
+
+### Mobs Not Attacking
+
+**Cause**: Activation range too low
+
+**Solution**: Increase `monsters` activation range to 32+
+
+### Farms Not Working
+
+**Cause**: Entities not ticking when players are far away
+
+**Solution**: Ensure farm is within activation range or use chunk loaders
+
+### Villagers Not Trading/Breeding
+
+**Cause**: `tick-inactive-villagers: false`
+
+**Solution**: Enable `tick-inactive-villagers: true`
+
+### Too Many Entities
+
+**Cause**: Mob farms, XP farms, or spawner accumulation
+
+**Solutions**:
+1. Reduce spawn limits
+2. Enable alt-item-despawn-rate for common items
+3. Use entity-per-chunk-save-limit
+
+## See Also
+
+- [Server Performance Overview](/optimization/server-performance)
+- [Chunk Loading Optimization](/optimization/chunk-loading)
+- [Network Optimization](/optimization/network)

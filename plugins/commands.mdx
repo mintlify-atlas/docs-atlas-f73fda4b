@@ -1,0 +1,445 @@
+---
+title: Creating Commands
+description: Learn how to create and register commands in Paper plugins
+---
+
+Paper provides multiple ways to create commands. The modern approach uses the `BasicCommand` interface and programmatic registration, while legacy plugins can still use the `Command` class.
+
+<Note>
+  Paper plugins using `paper-plugin.yml` cannot declare commands in YAML. You must register commands programmatically using `JavaPlugin.registerCommand()`.
+</Note>
+
+## BasicCommand Interface (Recommended)
+
+The `BasicCommand` interface provides a simple, Bukkit-style approach to creating commands.
+
+### Creating a BasicCommand
+
+From `io.papermc.paper.command.brigadier.BasicCommand`:
+
+```java
+@FunctionalInterface
+public interface BasicCommand {
+    void execute(CommandSourceStack commandSourceStack, String[] args);
+    
+    default Collection<String> suggest(CommandSourceStack commandSourceStack, String[] args) {
+        return Collections.emptyList();
+    }
+    
+    default boolean canUse(CommandSender sender) {
+        String permission = this.permission();
+        return permission == null || sender.hasPermission(permission);
+    }
+    
+    default @Nullable String permission() {
+        return null;
+    }
+}
+```
+
+<Steps>
+  <Step title="Implement BasicCommand">
+    Create a class implementing `BasicCommand`:
+
+    ```java
+    package com.example.myplugin;
+
+    import io.papermc.paper.command.brigadier.BasicCommand;
+    import io.papermc.paper.command.brigadier.CommandSourceStack;
+    import net.kyori.adventure.text.Component;
+    import org.bukkit.entity.Player;
+    import org.jetbrains.annotations.NotNull;
+
+    import java.util.Collection;
+    import java.util.List;
+
+    public class HelloCommand implements BasicCommand {
+
+        @Override
+        public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+            if (args.length == 0) {
+                stack.getSender().sendMessage("Hello, world!");
+            } else {
+                String name = args[0];
+                stack.getSender().sendMessage("Hello, " + name + "!");
+            }
+        }
+
+        @Override
+        public Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+            if (args.length == 1) {
+                // Suggest online player names
+                return stack.getSender().getServer().getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .toList();
+            }
+            return List.of();
+        }
+
+        @Override
+        public String permission() {
+            return "myplugin.hello";
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Register the Command">
+    Register your command in the plugin's `onEnable()` method:
+
+    ```java
+    @Override
+    public void onEnable() {
+        // Simple registration
+        registerCommand("hello", new HelloCommand());
+        
+        // With description
+        registerCommand("hello", "Say hello to someone", new HelloCommand());
+        
+        // With description and aliases
+        registerCommand("hello", "Say hello to someone", 
+            List.of("hi", "greet"), new HelloCommand());
+    }
+    ```
+
+    From `JavaPlugin.java:374-436`, the `registerCommand()` methods:
+
+    ```java
+    public void registerCommand(String label, BasicCommand basicCommand)
+    public void registerCommand(String label, @Nullable String description, BasicCommand basicCommand)
+    public void registerCommand(String label, Collection<String> aliases, BasicCommand basicCommand)
+    public void registerCommand(String label, @Nullable String description, 
+                               Collection<String> aliases, BasicCommand basicCommand)
+    ```
+  </Step>
+</Steps>
+
+### CommandSourceStack
+
+The `CommandSourceStack` (package: `io.papermc.paper.command.brigadier.CommandSourceStack`) provides context for command execution:
+
+```java
+public interface CommandSourceStack {
+    Location getLocation();           // Where the command was executed
+    CommandSender getSender();        // Who executed the command
+    @Nullable Entity getExecutor();   // The executing entity (may differ from sender)
+    
+    CommandSourceStack withLocation(Location location);
+    CommandSourceStack withExecutor(Entity executor);
+}
+```
+
+Usage example:
+
+```java
+@Override
+public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+    CommandSender sender = stack.getSender();
+    Location location = stack.getLocation();
+    Entity executor = stack.getExecutor();
+    
+    if (executor instanceof Player player) {
+        player.sendMessage("You are at: " + location);
+    } else {
+        sender.sendMessage("Console commands not supported");
+    }
+}
+```
+
+## Command Class (Legacy)
+
+For advanced use cases, you can extend the `Command` class directly.
+
+### Creating a Command
+
+From `org.bukkit.command.Command`:
+
+```java
+public abstract class Command {
+    protected Command(@NotNull String name)
+    protected Command(@NotNull String name, @NotNull String description, 
+                     @NotNull String usageMessage, @NotNull List<String> aliases)
+    
+    public abstract boolean execute(@NotNull CommandSender sender, 
+                                    @NotNull String commandLabel, 
+                                    @NotNull String[] args);
+    
+    public List<String> tabComplete(@NotNull CommandSender sender, 
+                                    @NotNull String alias, 
+                                    @NotNull String[] args)
+}
+```
+
+Example:
+
+```java
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class TeleportCommand extends Command {
+
+    public TeleportCommand() {
+        super("teleport", "Teleport to coordinates", "/teleport <x> <y> <z>", List.of("tp"));
+        setPermission("myplugin.teleport");
+    }
+
+    @Override
+    public boolean execute(@NotNull CommandSender sender, 
+                          @NotNull String label, 
+                          @NotNull String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can use this command");
+            return true;
+        }
+
+        if (args.length != 3) {
+            return false;  // Shows usage message
+        }
+
+        try {
+            double x = Double.parseDouble(args[0]);
+            double y = Double.parseDouble(args[1]);
+            double z = Double.parseDouble(args[2]);
+            
+            player.teleport(new Location(player.getWorld(), x, y, z));
+            player.sendMessage("Teleported!");
+            return true;
+        } catch (NumberFormatException e) {
+            sender.sendMessage("Invalid coordinates");
+            return false;
+        }
+    }
+
+    @Override
+    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, 
+                                             @NotNull String alias, 
+                                             @NotNull String[] args) {
+        if (args.length <= 3) {
+            return List.of("~");  // Suggest relative coordinates
+        }
+        return List.of();
+    }
+}
+```
+
+## Tab Completion
+
+Provide suggestions for command arguments:
+
+### BasicCommand Tab Completion
+
+```java
+public class GamemodeCommand implements BasicCommand {
+
+    @Override
+    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+        if (args.length != 1) {
+            stack.getSender().sendMessage("Usage: /gamemode <mode>");
+            return;
+        }
+        
+        // Execute command logic
+    }
+
+    @Override
+    public Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+        if (args.length == 1) {
+            return List.of("survival", "creative", "adventure", "spectator");
+        }
+        return List.of();
+    }
+}
+```
+
+### Dynamic Tab Completion
+
+```java
+@Override
+public Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+    if (args.length == 1) {
+        String input = args[0].toLowerCase();
+        return List.of("survival", "creative", "adventure", "spectator")
+            .stream()
+            .filter(mode -> mode.startsWith(input))
+            .toList();
+    }
+    return List.of();
+}
+```
+
+## Permission Checking
+
+### BasicCommand Permissions
+
+```java
+public class AdminCommand implements BasicCommand {
+
+    @Override
+    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+        // Only executes if player has permission
+        stack.getSender().sendMessage("Admin action performed!");
+    }
+
+    @Override
+    public String permission() {
+        return "myplugin.admin";  // Required permission
+    }
+
+    @Override
+    public boolean canUse(CommandSender sender) {
+        // Custom permission logic
+        return sender.hasPermission("myplugin.admin") || sender.isOp();
+    }
+}
+```
+
+### Command Class Permissions
+
+From `org.bukkit.command.Command:175-225`:
+
+```java
+command.setPermission("myplugin.teleport");
+
+if (command.testPermission(sender)) {
+    // Sender has permission
+}
+
+// Test silently (no message sent)
+if (command.testPermissionSilent(sender)) {
+    // Has permission
+}
+```
+
+## Command Aliases
+
+Register multiple aliases for a command:
+
+```java
+@Override
+public void onEnable() {
+    registerCommand("teleport", "Teleport to coordinates",
+        List.of("tp", "tele"),  // Aliases
+        new TeleportCommand());
+}
+```
+
+<Note>
+  Aliases will not override already existing commands (except namespaced ones). The main command label will override existing commands.
+</Note>
+
+## Subcommands
+
+Implement subcommands by parsing the first argument:
+
+```java
+public class AdminCommand implements BasicCommand {
+
+    @Override
+    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+        if (args.length == 0) {
+            stack.getSender().sendMessage("Usage: /admin <reload|info|debug>");
+            return;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "reload" -> handleReload(stack);
+            case "info" -> handleInfo(stack);
+            case "debug" -> handleDebug(stack, args);
+            default -> stack.getSender().sendMessage("Unknown subcommand");
+        }
+    }
+
+    @Override
+    public Collection<String> suggest(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+        if (args.length == 1) {
+            return List.of("reload", "info", "debug");
+        }
+        return List.of();
+    }
+
+    private void handleReload(CommandSourceStack stack) {
+        stack.getSender().sendMessage("Reloading...");
+    }
+
+    private void handleInfo(CommandSourceStack stack) {
+        stack.getSender().sendMessage("Plugin info...");
+    }
+
+    private void handleDebug(CommandSourceStack stack, String[] args) {
+        stack.getSender().sendMessage("Debug mode toggled");
+    }
+}
+```
+
+## Lifecycle Event Registration
+
+Alternatively, register commands via lifecycle events:
+
+```java
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+
+@Override
+public void onEnable() {
+    getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+        event.registrar().register(
+            "mycommand",
+            "Command description",
+            List.of("alias1", "alias2"),
+            new MyCommand()
+        );
+    });
+}
+```
+
+## Best Practices
+
+1. **Validate input**:
+   ```java
+   if (args.length < 1) {
+       sender.sendMessage("Usage: /command <arg>");
+       return;
+   }
+   ```
+
+2. **Check sender type**:
+   ```java
+   if (!(sender instanceof Player player)) {
+       sender.sendMessage("Only players can use this command");
+       return;
+   }
+   ```
+
+3. **Use permissions**:
+   ```java
+   @Override
+   public String permission() {
+       return "myplugin.command";
+   }
+   ```
+
+4. **Provide tab completion**:
+   ```java
+   @Override
+   public Collection<String> suggest(CommandSourceStack stack, String[] args) {
+       // Return relevant suggestions
+   }
+   ```
+
+5. **Handle errors gracefully**:
+   ```java
+   try {
+       // Command logic
+   } catch (Exception e) {
+       sender.sendMessage("An error occurred");
+       getLogger().severe("Command error: " + e.getMessage());
+   }
+   ```
+
+<Warning>
+  Do not call `getCommand()` in `onEnable()` for Paper plugins. Use `registerCommand()` instead.
+</Warning>

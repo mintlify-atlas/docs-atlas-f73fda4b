@@ -1,0 +1,419 @@
+---
+title: Configuration
+description: Learn how to configure your Paper server with server.properties and Paper-specific config files
+---
+
+Paper provides extensive configuration options through multiple configuration files. This guide covers the essential configuration files and settings you'll need to customize your server.
+
+## Configuration Files Overview
+
+Paper uses several configuration files, each serving a different purpose:
+
+| File | Purpose |
+|------|----------|
+| `server.properties` | Core Minecraft server settings |
+| `bukkit.yml` | Bukkit platform configuration |
+| `spigot.yml` | Spigot platform configuration |
+| `commands.yml` | Command aliases and overrides |
+| `config/paper-global.yml` | Paper global configuration |
+| `config/paper-world-defaults.yml` | Paper world default settings |
+| `permissions.yml` | Permission definitions |
+| `help.yml` | Custom help topics |
+
+<Note>
+  Paper stores its configuration files in the `config/` directory. The main Paper configurations are `paper-global.yml` and `paper-world-defaults.yml`.
+</Note>
+
+## server.properties
+
+This is the primary configuration file for basic server settings. It's generated on first run.
+
+### Essential Settings
+
+```properties server.properties
+# Network Settings
+server-ip=
+server-port=25565
+query.port=25565
+
+# World Settings
+level-name=world
+level-seed=
+generator-settings={}
+level-type=minecraft\:normal
+
+# Gameplay Settings
+difficulty=normal
+gamemode=survival
+force-gamemode=false
+hardcore=false
+pvp=true
+
+# Player Settings
+max-players=20
+player-idle-timeout=0
+view-distance=10
+simulation-distance=10
+
+# Security
+online-mode=true
+white-list=false
+enforce-whitelist=false
+allow-flight=false
+
+# Performance
+max-tick-time=60000
+max-world-size=29999984
+entity-broadcast-range-percentage=100
+
+# Server Information
+motd=A Minecraft Server
+resource-pack=
+resource-pack-prompt=
+resource-pack-sha1=
+```
+
+### Key Configuration Options
+
+<AccordionGroup>
+  <Accordion title="Network Settings">
+    - `server-ip` - The IP address to bind to (leave empty for all interfaces)
+    - `server-port` - The port players connect to (default: 25565)
+    - `online-mode` - Enable Mojang authentication (true for production servers)
+  </Accordion>
+
+  <Accordion title="World Settings">
+    - `level-name` - The name of the world folder
+    - `level-seed` - World generation seed (empty for random)
+    - `level-type` - World type (normal, flat, large_biomes, amplified)
+    - `allow-nether` - Enable the Nether dimension
+    - `allow-end` - Enable the End dimension (configured in bukkit.yml)
+  </Accordion>
+
+  <Accordion title="Gameplay Settings">
+    - `difficulty` - Game difficulty (peaceful, easy, normal, hard)
+    - `gamemode` - Default game mode (survival, creative, adventure, spectator)
+    - `hardcore` - Enable hardcore mode (permanent death)
+    - `pvp` - Allow player vs player combat
+    - `spawn-monsters` - Allow hostile mob spawning
+    - `spawn-animals` - Allow passive mob spawning
+  </Accordion>
+
+  <Accordion title="Performance Settings">
+    - `view-distance` - How far players can see (2-32 chunks, 10 recommended)
+    - `simulation-distance` - How far chunks are actively simulated (3-32)
+    - `max-tick-time` - Watchdog timeout in milliseconds
+    - `entity-broadcast-range-percentage` - Entity visibility range (100 = default)
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Setting `online-mode=false` disables Mojang authentication and allows cracked clients. This is a security risk and should only be used for local testing or with a proxy like Velocity.
+</Warning>
+
+## bukkit.yml
+
+Bukkit configuration file with spawn limits and basic settings.
+
+```yaml bukkit.yml
+settings:
+  allow-end: true
+  warn-on-overload: true
+  permissions-file: permissions.yml
+  update-folder: update
+  plugin-profiling: false
+  connection-throttle: 4000
+  query-plugins: true
+  deprecated-verbose: default
+  shutdown-message: Server closed
+  minimum-api: none
+  use-map-color-cache: true
+
+spawn-limits:
+  monsters: 70
+  animals: 10
+  water-animals: 5
+  water-ambient: 20
+  water-underground-creature: 5
+  axolotls: 5
+  ambient: 15
+
+chunk-gc:
+  period-in-ticks: 600
+
+ticks-per:
+  animal-spawns: 400
+  monster-spawns: 1
+  water-spawns: 1
+  water-ambient-spawns: 1
+  water-underground-creature-spawns: 1
+  axolotl-spawns: 1
+  ambient-spawns: 1
+  autosave: 6000
+
+aliases: now-in-commands.yml
+```
+
+### Important bukkit.yml Settings
+
+- `spawn-limits` - Maximum number of each mob type per world
+- `ticks-per.autosave` - How often to save worlds (6000 = 5 minutes)
+- `connection-throttle` - Minimum milliseconds between connections from same IP
+- `warn-on-overload` - Show warnings when server is running slowly
+
+<Tip>
+  Reference: [docs.papermc.io/paper/reference/bukkit-configuration](https://docs.papermc.io/paper/reference/bukkit-configuration/)
+</Tip>
+
+## commands.yml
+
+Configure command aliases and override vanilla permissions.
+
+```yaml commands.yml
+command-block-overrides: []
+ignore-vanilla-permissions: false
+
+aliases:
+  icanhasbukkit:
+    - "version $1-"
+  # Add custom aliases:
+  # tpa:
+  #   - "teleport $1 $2"
+```
+
+### Creating Command Aliases
+
+You can create shortcuts for commonly used commands:
+
+```yaml commands.yml
+aliases:
+  # Simple alias
+  gmc:
+    - "gamemode creative $1-"
+  
+  # Multiple commands
+  spawn:
+    - "tp 0 64 0"
+    - "say $1 returned to spawn"
+  
+  # With arguments
+  heal:
+    - "effect clear $1"
+    - "effect give $1 minecraft:instant_health 1 10"
+```
+
+<Tip>
+  Reference: [docs.papermc.io/paper/reference/bukkit-commands-configuration](https://docs.papermc.io/paper/reference/bukkit-commands-configuration/)
+</Tip>
+
+## Paper Configuration Files
+
+Paper introduces its own configuration system with two main files in the `config/` directory.
+
+### config/paper-global.yml
+
+Global settings that apply to the entire server. This file contains extensive configuration options for performance, gameplay mechanics, and server behavior.
+
+<Note>
+  The paper-global.yml file is created on first run and contains detailed comments for each setting. The file includes the note:
+  
+  "This is the global configuration file for Paper. As you can see, there's a lot to configure. Some options may impact gameplay, so use with caution, and make sure you know what each option does before configuring."
+</Note>
+
+### config/paper-world-defaults.yml
+
+Default world settings that can be overridden per-world. Individual worlds can have their own `paper-world.yml` file in the world directory.
+
+### Common Paper Settings
+
+Some frequently configured Paper settings include:
+
+<CodeGroup>
+```yaml Performance Settings
+# In paper-global.yml or paper-world-defaults.yml
+
+# Chunk loading
+chunk-loading:
+  max-concurrent-sends: 2
+  autoconfig-send-distance: true
+
+# Entity activation range
+entity-activation-range:
+  animals: 32
+  monsters: 32
+  raiders: 48
+  misc: 16
+  water: 16
+  villagers: 32
+  flying-monsters: 32
+```
+
+```yaml Gameplay Settings
+# Anti-cheat and gameplay mechanics
+
+anti-xray:
+  enabled: false
+  engine-mode: 1
+  max-block-height: 64
+
+gameplay:
+  disable-chest-cat-detection: false
+  fix-climbing-bypassing-cramming-rule: true
+  armor-stands-do-collision-entity-lookups: true
+```
+
+```yaml World Generation
+# World generation settings
+
+generation:
+  keep-spawn-loaded: true
+  keep-spawn-loaded-range: 10
+```
+</CodeGroup>
+
+<Warning>
+  Paper configuration files use a versioned format. Do not manually edit the version numbers or structure - let Paper handle migrations automatically.
+</Warning>
+
+## help.yml
+
+Customize help topics and documentation for your server.
+
+```yaml help.yml
+# Add custom help topics
+general-topics:
+  Rules:
+    shortText: Server rules and guidelines
+    fullText: |
+      &61. Be respectful to other players
+      &62. No griefing or stealing
+      &63. No cheating or exploiting
+    permission: topics.rules
+
+# Override command help
+amended-topics:
+  /spawn:
+    shortText: Teleport to spawn
+    fullText: Returns you to the world spawn point
+
+# Hide plugins from help
+ignore-plugins:
+  # - PluginName
+```
+
+<Tip>
+  Reference: [docs.papermc.io/paper/reference/bukkit-help-configuration](https://docs.papermc.io/paper/reference/bukkit-help-configuration/)
+</Tip>
+
+## permissions.yml
+
+Define custom permission nodes for use with commands and plugins.
+
+```yaml permissions.yml
+# Define permission groups
+moderator:
+  description: Moderator permissions
+  children:
+    essentials.kick: true
+    essentials.ban: true
+    essentials.mute: true
+
+builder:
+  description: Builder permissions
+  children:
+    worldedit.selection.*: true
+    worldedit.region.*: true
+    worldedit.clipboard.*: true
+```
+
+## Configuration Best Practices
+
+<Steps>
+  <Step title="Backup before changing">
+    Always backup configuration files before making significant changes:
+    
+    ```bash
+    cp server.properties server.properties.backup
+    cp -r config config.backup
+    ```
+  </Step>
+
+  <Step title="Change one thing at a time">
+    Modify one setting at a time and test the impact. This makes it easier to identify issues.
+  </Step>
+
+  <Step title="Read the comments">
+    Paper configuration files include detailed comments explaining what each option does. Always read them before changing values.
+  </Step>
+
+  <Step title="Restart when needed">
+    Most configuration changes require a server restart. Some Paper settings support live reloading, but restarting is safest:
+    
+    ```
+    stop
+    ```
+  </Step>
+
+  <Step title="Monitor performance">
+    After changing performance settings, use `/timings` or [Spark](https://spark.lucko.me/) to monitor the impact.
+  </Step>
+</Steps>
+
+## Reloading Configuration
+
+Some configuration files can be reloaded without restarting:
+
+```
+/reload confirm
+```
+
+<Warning>
+  The `/reload` command can cause issues with some plugins and may lead to memory leaks. It's recommended to restart your server instead of using reload when possible.
+</Warning>
+
+## Per-World Configuration
+
+Paper allows per-world configuration overrides. Create a `paper-world.yml` file in any world folder to override the defaults for that specific world:
+
+```
+world/paper-world.yml
+world_nether/paper-world.yml
+world_the_end/paper-world.yml
+```
+
+Settings in these files override `paper-world-defaults.yml` for that specific world.
+
+## Command-Line Configuration
+
+Many settings can be overridden via command-line arguments:
+
+```bash
+java -jar server.jar \
+  --port 25566 \
+  --world my-world \
+  --bukkit-settings custom-bukkit.yml \
+  --paper-dir /path/to/paper/config
+```
+
+### Available Options
+
+- `--config <file>` - Custom server.properties location
+- `--bukkit-settings <file>` - Custom bukkit.yml location
+- `--spigot-settings <file>` - Custom spigot.yml location  
+- `--paper-dir <directory>` - Custom Paper config directory
+- `--plugins <directory>` - Custom plugins directory
+- `--world-dir <directory>` - Custom world container directory
+- `--port <port>` - Override server port
+- `--world <name>` - Override level-name
+
+## Getting Help
+
+For detailed configuration documentation:
+
+- [Paper Configuration Reference](https://docs.papermc.io/paper/reference/configuration)
+- [Paper Discord](https://discord.gg/papermc)
+- [Paper Forums](https://forums.papermc.io/)
+
+<Tip>
+  Each Paper configuration file includes a reference URL at the top pointing to detailed documentation for that specific file.
+</Tip>

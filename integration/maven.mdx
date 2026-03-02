@@ -1,0 +1,122 @@
+---
+title: Maven Integration
+description: Add the Paper API to your Maven project
+---
+
+This guide shows you how to integrate the Paper API into your Maven-based plugin project.
+
+## Add the Paper Repository
+
+Add the Paper Maven repository to your `pom.xml` file:
+
+```xml pom.xml
+<repositories>
+    <repository>
+        <id>papermc</id>
+        <url>https://repo.papermc.io/repository/maven-public/</url>
+    </repository>
+</repositories>
+```
+
+The Paper Maven repository hosts the Paper API and related artifacts at `repo.papermc.io`.
+
+## Add the Paper API Dependency
+
+Add the Paper API as a provided dependency:
+
+```xml pom.xml
+<dependencies>
+    <dependency>
+        <groupId>io.papermc.paper</groupId>
+        <artifactId>paper-api</artifactId>
+        <version>1.21.11-R0.1-SNAPSHOT</version>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+```
+
+<Note>
+The `provided` scope is essential because the Paper server already includes the API at runtime. Including it in your plugin JAR would cause conflicts and increase file size unnecessarily.
+</Note>
+
+## Version Selection
+
+The Paper API uses version numbers that correspond to Minecraft versions:
+
+- `1.21.11-R0.1-SNAPSHOT` - Latest development version for Minecraft 1.21.11
+- Replace with your target Minecraft version
+- The `-SNAPSHOT` suffix indicates this is a development build
+
+Check the [Paper downloads page](https://papermc.io/downloads/paper) to find the latest version for your target Minecraft release.
+
+## Java Version Requirement
+
+Paper requires Java 21 or later. Configure your Maven compiler plugin:
+
+```xml pom.xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.11.0</version>
+            <configuration>
+                <source>21</source>
+                <target>21</target>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+## Complete Example
+
+Here's a minimal `pom.xml` configuration for a Paper plugin:
+
+```xml pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>my-paper-plugin</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>
+```
+
+## Next Steps
+
+After setting up Maven integration:
+
+1. Create your plugin main class extending `JavaPlugin`
+2. Add a `paper-plugin.yml` or `plugin.yml` file
+3. Build your plugin with `mvn clean package`
+4. Test your plugin on a Paper server
+
+For testing local Paper API changes, see the [Publishing guide](/integration/publishing).

@@ -1,0 +1,515 @@
+---
+title: 'Server Commands'
+description: 'Paper server administration and debugging commands'
+---
+
+Paper provides additional commands beyond vanilla Minecraft for server administration, debugging, and performance monitoring.
+
+## Paper Commands
+
+The `/paper` command provides access to Paper-specific functionality. All subcommands require the `bukkit.command.paper` permission or specific subcommand permissions.
+
+### Syntax
+
+```
+/paper <subcommand> [arguments]
+```
+
+### Subcommands
+
+<AccordionGroup>
+  <Accordion title="version" icon="code-branch">
+    Display Paper server version information.
+    
+    ```
+    /paper version
+    /paper ver  # Alias
+    ```
+    
+    **Permission:** `bukkit.command.paper.version`
+    
+    **Output includes:**
+    - Paper version and build number
+    - Minecraft version
+    - Git commit information
+    - Previous version (if updated)
+  </Accordion>
+
+  <Accordion title="reload" icon="rotate">
+    Reload Paper configuration files without restarting the server.
+    
+    ```
+    /paper reload
+    ```
+    
+    **Permission:** `bukkit.command.paper.reload`
+    
+    **Reloads:**
+    - `config/paper-global.yml`
+    - `config/paper-world-defaults.yml`
+    - Per-world configurations
+    
+    <Warning>
+    Some settings require a full server restart. Reloading may not apply all changes and can cause issues in some cases.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="heap" icon="memory">
+    Generate a heap dump for memory analysis.
+    
+    ```
+    /paper heap
+    ```
+    
+    **Permission:** `bukkit.command.paper.heap`
+    
+    Creates a `.hprof` file in the server directory for analysis with tools like:
+    - Eclipse Memory Analyzer (MAT)
+    - VisualVM
+    - JProfiler
+    
+    <Tip>
+    Use this to diagnose memory leaks or high memory usage. The dump is created instantly and can be very large.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="entity" icon="bug">
+    Display entity information and statistics for the current world.
+    
+    ```
+    /paper entity
+    ```
+    
+    **Permission:** `bukkit.command.paper.entity`
+    
+    **Shows:**
+    - Entity count by type
+    - Chunk locations with high entity counts
+    - Entity distribution analysis
+    
+    Useful for identifying:
+    - Entity farms causing lag
+    - Chunk errors with excessive entities
+    - Mob spawner issues
+  </Accordion>
+
+  <Accordion title="mobcaps" icon="spider">
+    Display current mob caps and spawn information.
+    
+    ```
+    /paper mobcaps
+    /paper playermobcaps  # Alias
+    ```
+    
+    **Permission:** `bukkit.command.paper.mobcaps`
+    
+    **Shows:**
+    - Current mob counts per category
+    - Mob cap limits
+    - Per-player mob counts (if per-player spawning is enabled)
+    
+    Categories: `MONSTER`, `CREATURE`, `AMBIENT`, `WATER_CREATURE`, `WATER_AMBIENT`, `UNDERGROUND_WATER_CREATURE`, `AXOLOTLS`
+  </Accordion>
+
+  <Accordion title="dumpitem" icon="box">
+    Dump NBT data of the item you're holding.
+    
+    ```
+    /paper dumpitem
+    ```
+    
+    **Permission:** `bukkit.command.paper.dumpitem`
+    
+    Outputs complete NBT data of the held item to console and provides a paste link. Useful for:
+    - Plugin development
+    - Custom item debugging
+    - Understanding item data structure
+  </Accordion>
+
+  <Accordion title="dumpplugins" icon="puzzle-piece">
+    Dump information about all loaded plugins.
+    
+    ```
+    /paper dumpplugins
+    ```
+    
+    **Permission:** `bukkit.command.paper.dumpplugins`
+    
+    **Information includes:**
+    - Plugin name and version
+    - Authors
+    - Dependencies
+    - Load order
+    - Registered listeners
+    - Commands
+    - Permissions
+    
+    Creates a detailed report for troubleshooting plugin conflicts.
+  </Accordion>
+
+  <Accordion title="dumplisteners" icon="ear-listen">
+    Dump all registered event listeners.
+    
+    ```
+    /paper dumplisteners
+    ```
+    
+    **Permission:** `bukkit.command.paper.dumplisteners`
+    
+    Shows which plugins are listening to which events, useful for:
+    - Identifying performance bottlenecks
+    - Finding event conflicts
+    - Debugging event-related issues
+  </Accordion>
+
+  <Accordion title="syncloadinfo" icon="download">
+    Display information about synchronous chunk loads.
+    
+    ```
+    /paper syncloadinfo
+    ```
+    
+    **Permission:** `bukkit.command.paper.syncloadinfo`
+    
+    **Shows:**
+    - Plugins causing synchronous chunk loads
+    - Stack traces of sync load locations
+    - Count of sync loads
+    
+    <Note>
+    Synchronous chunk loads cause server lag. This command helps identify problematic plugins.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Performance Monitoring
+
+### MSPT Command
+
+Check server tick performance in milliseconds per tick.
+
+```
+/mspt
+```
+
+**Permission:** `bukkit.command.mspt`
+
+**Output:**
+- Current tick time
+- 1-minute average
+- 5-minute average  
+- 15-minute average
+
+**Understanding MSPT:**
+- **50ms** = 20 TPS (target)
+- **< 40ms** = Excellent performance
+- **40-45ms** = Good performance
+- **45-50ms** = Acceptable
+- **> 50ms** = Server is lagging
+
+<Tip>
+Monitor MSPT during peak hours to identify performance issues. Consistent values over 50ms indicate you need to optimize or upgrade.
+</Tip>
+
+### Timings
+
+Generate detailed performance reports (legacy, but still available).
+
+```
+/timings on          # Start recording
+/timings off         # Stop recording
+/timings paste       # Upload and get report URL
+/timings reset       # Clear recorded data
+```
+
+**Permission:** `bukkit.command.timings`
+
+<Warning>
+Timings adds overhead while recording. Use Spark profiler for modern performance analysis.
+</Warning>
+
+## Vanilla Commands Enhanced
+
+Paper enhances several vanilla commands:
+
+### Version Command
+
+```
+/version
+/ver      # Alias
+/about    # Alias
+```
+
+Shows Paper version, build info, and checks for updates.
+
+### Plugins Command
+
+```
+/plugins
+/pl       # Alias
+```
+
+Lists all loaded plugins with Paper-specific formatting.
+
+## Chunk Management
+
+While not Paper-specific, these vanilla commands are essential for administration:
+
+### Force Load Chunks
+
+```
+/forceload add <from> <to>
+/forceload remove <from> <to>
+/forceload query [<pos>]
+/forceload remove all
+```
+
+**Permission:** `minecraft.command.forceload`
+
+Keep chunks loaded even when no players are nearby.
+
+<Warning>
+Force-loaded chunks consume resources continuously. Use sparingly.
+</Warning>
+
+## World Management
+
+### Save Commands
+
+```
+/save-all [flush]     # Save all worlds
+/save-off             # Disable auto-saving
+/save-on              # Enable auto-saving
+```
+
+**Permission:** `minecraft.command.save`
+
+**Options:**
+- `flush` - Force write to disk immediately
+
+<Accordion title="When to use save-off">
+  Disable auto-saving during:
+  - Large WorldEdit operations
+  - Backup creation
+  - Mass chunk generation
+  
+  <Warning>Remember to run /save-on when finished!</Warning>
+</Accordion>
+
+### Difficulty
+
+```
+/difficulty <difficulty>
+```
+
+**Permission:** `minecraft.command.difficulty`
+
+**Options:** `peaceful`, `easy`, `normal`, `hard`
+
+Changes take effect immediately without restart.
+
+## Permission Management
+
+### Op Commands
+
+```
+/op <player>          # Grant operator status
+/deop <player>        # Revoke operator status
+```
+
+**Permission:** `minecraft.command.op` / `minecraft.command.deop`
+
+<Warning>
+Operator status grants all permissions. Use a permissions plugin (LuckPerms) for fine-grained control.
+</Warning>
+
+### Whitelist
+
+```
+/whitelist add <player>
+/whitelist remove <player>
+/whitelist list
+/whitelist on
+/whitelist off
+/whitelist reload
+```
+
+**Permission:** `minecraft.command.whitelist`
+
+## Player Management
+
+### Kick and Ban
+
+```
+/kick <player> [reason]
+/ban <player> [reason]
+/ban-ip <ip|player> [reason]
+/pardon <player>
+/pardon-ip <ip>
+/banlist [ips|players]
+```
+
+### Teleportation
+
+```
+/tp <player>                    # Teleport to player
+/tp <player> <destination>      # Teleport player to destination
+/tp <x> <y> <z>                # Teleport to coordinates
+```
+
+## Debugging Commands
+
+### Debug
+
+```
+/debug start              # Start debug profiling
+/debug stop              # Stop and save debug profile
+/debug report            # Create debug report
+```
+
+**Permission:** `minecraft.command.debug`
+
+Creates `.zip` files with profiling data for Java VisualVM.
+
+### Perf
+
+```
+/perf start              # Start performance profiling
+/perf stop               # Stop profiling
+```
+
+**Permission:** `minecraft.command.perf`
+
+Java Flight Recorder profiling (requires JFR-enabled JVM).
+
+## Server Control
+
+### Stop Server
+
+```
+/stop [reason]
+```
+
+**Permission:** `minecraft.command.stop`
+
+Gracefully shuts down the server:
+1. Kicks all players with optional reason
+2. Saves all worlds
+3. Unloads all chunks
+4. Stops the server
+
+### Restart (Script Required)
+
+Paper doesn't have a built-in `/restart` command. Use a server wrapper script:
+
+```bash
+#!/bin/bash
+while true; do
+    java -Xms10G -Xmx10G -jar paper.jar --nogui
+    echo "Server restarting in 5 seconds..."
+    sleep 5
+done
+```
+
+## Command Blocks
+
+Paper provides additional configuration for command blocks (WorldConfiguration.java:561-566):
+
+**config/paper-world-defaults.yml:**
+```yaml
+command-blocks:
+  permissions-level: 2    # 1-4, controls what commands can run
+  force-follow-perm-level: true
+```
+
+**Permission Levels:**
+- **1** - Bypass spawn protection
+- **2** - Use command blocks, /gamemode, /give
+- **3** - Operator commands (/ban, /kick, etc.)
+- **4** - All commands including /stop
+
+## Permissions Reference
+
+All Paper command permissions follow the format:
+
+```
+bukkit.command.paper.<subcommand>
+```
+
+### Default Permissions
+
+| Permission | Default | Description |
+|------------|---------|-------------|
+| `bukkit.command.paper` | op | Base Paper command |
+| `bukkit.command.paper.version` | op | Version info |
+| `bukkit.command.paper.reload` | op | Reload configs |
+| `bukkit.command.paper.heap` | op | Create heap dump |
+| `bukkit.command.paper.entity` | op | Entity info |
+| `bukkit.command.paper.mobcaps` | op | Mob cap info |
+| `bukkit.command.paper.dumpitem` | op | Dump item NBT |
+| `bukkit.command.mspt` | op | View MSPT |
+
+<Note>
+All permissions default to OP. Configure with a permissions plugin for non-op access.
+</Note>
+
+## Command Tips
+
+<AccordionGroup>
+  <Accordion title="Monitoring Performance" icon="chart-line">
+    **Daily monitoring routine:**
+    1. `/mspt` - Check current performance
+    2. `/paper mobcaps` - Verify mob spawning is healthy
+    3. `/paper entity` - Look for entity buildup
+    4. Review console for errors
+    
+    **When investigating lag:**
+    1. `/spark profiler --timeout 300` - 5-minute profile
+    2. `/paper syncloadinfo` - Check for sync chunk loads
+    3. `/paper entity` - Find entity hotspots
+  </Accordion>
+
+  <Accordion title="Development & Debugging" icon="code">
+    Useful for plugin developers:
+    
+    ```bash
+    /paper dumpitem          # Current item NBT
+    /paper dumpplugins       # Plugin details
+    /paper dumplisteners     # Event listeners
+    /minecraft:attribute     # Entity attributes
+    /data get entity         # Entity NBT
+    ```
+  </Accordion>
+
+  <Accordion title="Maintenance Operations" icon="wrench">
+    Before making backups:
+    
+    ```bash
+    /save-off                # Disable auto-save
+    /save-all flush          # Force save all
+    # Create backup
+    /save-on                 # Re-enable auto-save
+    ```
+    
+    After updating Paper:
+    
+    ```bash
+    /version                 # Verify version
+    /paper reload            # Reload configs (if needed)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+<CardGroup cols={3}>
+  <Card title="Performance Tuning" icon="gauge-high" href="/administration/performance-tuning">
+    Optimize based on command output
+  </Card>
+  <Card title="Paper Config" icon="globe" href="/administration/paper-configuration">
+    Global configuration reference
+  </Card>
+  <Card title="World Config" icon="earth-americas" href="/administration/world-configuration">
+    Per-world settings
+  </Card>
+</CardGroup>

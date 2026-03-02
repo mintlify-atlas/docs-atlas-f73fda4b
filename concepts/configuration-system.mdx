@@ -1,0 +1,358 @@
+---
+title: Configuration System Architecture
+description: How Paper's ConfigurationPart-based configuration system works
+---
+
+## Overview
+
+Paper uses a structured configuration system based on the `ConfigurationPart` pattern. This system provides type-safe configuration with automatic serialization, validation, and per-world customization.
+
+## ConfigurationPart Pattern
+
+The `ConfigurationPart` class is a marker interface for configuration sections:
+
+```java
+package io.papermc.paper.configuration;
+
+public abstract class ConfigurationPart {
+}
+```
+
+All configuration classes extend `ConfigurationPart`, enabling:
+- Automatic serialization/deserialization
+- Nested configuration sections
+- Type safety and validation
+- IDE autocomplete support
+
+<Info>
+The `ConfigurationPart` marker enables the configuration framework to identify and process configuration sections automatically.
+</Info>
+
+## GlobalConfiguration vs WorldConfiguration
+
+Paper has two primary configuration classes with different scopes:
+
+### GlobalConfiguration
+
+Settings that apply server-wide and must remain consistent across all worlds.
+
+**Location:** `io.papermc.paper.configuration.GlobalConfiguration`
+
+**Use cases:**
+- Proxy settings (BungeeCord, Velocity)
+- Console configuration
+- Watchdog settings
+- Packet rate limiting
+- Player auto-save configuration
+- Message templates
+
+**Accessing global config:**
+```java
+int maxPlayers = io.papermc.paper.configuration.GlobalConfiguration.get().misc.maxNumOfPlayers;
+```
+
+<Note>
+Global configuration is accessed via the static `get()` method and returns a singleton instance.
+</Note>
+
+### WorldConfiguration
+
+Settings that can differ between worlds (Overworld, Nether, End, custom dimensions).
+
+**Location:** `io.papermc.paper.configuration.WorldConfiguration`
+
+**Use cases:**
+- Entity spawning limits
+- Mob behavior settings
+- Anti-cheat configuration (anti-xray)
+- Chunk loading settings
+- Environment settings (thunder, ice, snow)
+- Tick rates for various systems
+
+**Accessing world config:**
+```java
+// Requires a Level instance
+int maxPlayers = level.paperConfig().misc.maxNumOfPlayers;
+```
+
+<Info>
+World-specific configuration is preferred whenever possible to allow different settings per dimension.
+</Info>
+
+## Configuration Structure
+
+Both configuration classes use nested inner classes extending `ConfigurationPart` to organize settings:
+
+```java
+public class GlobalConfiguration extends ConfigurationPart {
+    public Misc misc;
+    
+    public class Misc extends ConfigurationPart {
+        public boolean lagCompensateBlockBreaking = true;
+        public boolean useDimensionTypeForCustomSpawners = false;
+        public int maxNumOfPlayers = 20;
+    }
+}
+```
+
+**Key features:**
+- **Nested sections** - Related settings grouped in inner classes
+- **Default values** - Field initializers provide defaults
+- **Type safety** - Compile-time checking of setting types
+- **Clear hierarchy** - Configuration path matches code structure
+
+<Tip>
+The configuration file path is automatically generated from field names using snake-case conversion: `maxNumOfPlayers` becomes `misc.max-num-of-players`.
+</Tip>
+
+## Adding New Configuration Options
+
+### Adding to GlobalConfiguration
+
+```java
+public class GlobalConfiguration extends ConfigurationPart {
+    public Misc misc;
+    
+    public class Misc extends ConfigurationPart {
+        public int maxNumOfPlayers = 20; // New setting with default value
+    }
+}
+```
+
+Access in code:
+```java
+int max = io.papermc.paper.configuration.GlobalConfiguration.get().misc.maxNumOfPlayers;
+```
+
+### Adding to WorldConfiguration
+
+```java
+public class WorldConfiguration extends ConfigurationPart {
+    public Misc misc;
+    
+    public class Misc extends ConfigurationPart {
+        public boolean updatePathfindingOnBlockUpdate = true;
+    }
+}
+```
+
+Access in code:
+```java
+// Need a Level instance
+boolean shouldUpdate = level.paperConfig().misc.updatePathfindingOnBlockUpdate;
+```
+
+<Note>
+Always use fully qualified class names for `GlobalConfiguration` since it's not imported in most Minecraft classes. Avoid adding imports to vanilla files.
+</Note>
+
+## Configuration Annotations
+
+### @Setting
+
+Override the configuration key name:
+
+```java
+@Setting("custom-key-name")
+public int myValue = 10;
+```
+
+### @Comment
+
+Add explanatory comments to the configuration file:
+
+```java
+@Comment("The maximum rate in chunks per second that the server will send to any individual player")
+public double playerMaxChunkSendRate = 75.0;
+```
+
+### @Required
+
+Mark a field as required (must be present in config):
+
+```java
+@Required
+public String requiredValue;
+```
+
+### @PostProcess
+
+Execute validation or transformation after loading:
+
+```java
+@PostProcess
+private void postProcess() {
+    if (this.value < 0) {
+        this.value = 0;
+    }
+}
+```
+
+<Info>
+`@PostProcess` methods are called after deserialization, allowing validation and computed fields.
+</Info>
+
+## Advanced Configuration Types
+
+### IntOr.Default and IntOr.Disabled
+
+Optional integer values with special handling:
+
+```java
+public IntOr.Default maxBlockHeight = IntOr.Default.USE_DEFAULT;
+public IntOr.Disabled maxArrowDespawnInvulnerability = new IntOr.Disabled(OptionalInt.of(200));
+```
+
+**Use cases:**
+- `IntOr.Default` - Use vanilla default or specify custom value
+- `IntOr.Disabled` - Allow disabling feature with -1 or special value
+
+### DoubleOr.Default and DoubleOr.Disabled
+
+Same pattern for double values:
+
+```java
+public DoubleOr.Default maxLeashDistance = DoubleOr.Default.USE_DEFAULT;
+public DoubleOr.Disabled voidDamageAmount = new DoubleOr.Disabled(OptionalDouble.of(4));
+```
+
+### Duration and DurationOrDisabled
+
+Type-safe duration values:
+
+```java
+public Duration refreshMin = Duration.of("12h");
+public Duration refreshMax = Duration.of("2d");
+public DurationOrDisabled restrictPlayerRelootTime = DurationOrDisabled.USE_DISABLED;
+```
+
+**Supported formats:** "10s", "5m", "2h", "3d"
+
+<Tip>
+Using `Duration` instead of raw integers makes configuration files more readable and less error-prone.
+</Tip>
+
+### Collections (Maps and Lists)
+
+```java
+// Reference2IntMap for entity types to integers
+public Reference2IntMap<MobCategory> spawnLimits = Util.make(
+    new Reference2IntOpenHashMap<>(),
+    map -> Arrays.stream(NaturalSpawner.SPAWNING_CATEGORIES)
+        .forEach(category -> map.put(category, -1))
+);
+
+// Lists of blocks
+public List<Block> hiddenBlocks = List.of(
+    Blocks.DIAMOND_ORE,
+    Blocks.EMERALD_ORE
+);
+```
+
+### Nested Configuration Objects
+
+```java
+public Proxies proxies;
+
+public class Proxies extends ConfigurationPart {
+    public BungeeCord bungeeCord;
+    
+    public class BungeeCord extends ConfigurationPart {
+        public boolean onlineMode = true;
+    }
+}
+```
+
+## Configuration File Versioning
+
+Both configuration classes track versions:
+
+```java
+static final int CURRENT_VERSION = 31;
+
+@Setting(Configuration.VERSION_FIELD)
+public int version = CURRENT_VERSION;
+```
+
+**Version management:**
+- Increment `CURRENT_VERSION` when adding/changing settings
+- Update the comment explaining the change
+- Migrations handle upgrading old configs
+
+<Note>
+The version comment should describe the change so merge conflicts are detected during rebases.
+</Note>
+
+## Example: Complete Configuration Section
+
+```java
+public class WorldConfiguration extends ConfigurationPart {
+    public Entities entities;
+    
+    public class Entities extends ConfigurationPart {
+        public Spawning spawning;
+        
+        public class Spawning extends ConfigurationPart {
+            @Comment("Controls per-player mob spawning")
+            public boolean perPlayerMobSpawns = true;
+            
+            @MergeMap
+            public Reference2IntMap<MobCategory> spawnLimits = 
+                Util.make(new Reference2IntOpenHashMap<>(), map -> 
+                    Arrays.stream(NaturalSpawner.SPAWNING_CATEGORIES)
+                        .forEach(category -> map.put(category, -1))
+                );
+            
+            @PostProcess
+            public void precomputeDespawnDistances() throws SerializationException {
+                // Validation logic here
+            }
+        }
+    }
+}
+```
+
+Access in code:
+```java
+boolean perPlayer = level.paperConfig().entities.spawning.perPlayerMobSpawns;
+```
+
+## Configuration Location
+
+**Global configuration:**
+- File: `config/paper-global.yml`
+- One file for entire server
+
+**World configuration:**
+- File: `config/paper-world-defaults.yml` (defaults for all worlds)
+- Per-world: `world/paper-world.yml` (overrides for specific world)
+
+<Info>
+World configurations inherit from `paper-world-defaults.yml` and can override specific settings per world.
+</Info>
+
+## Best Practices
+
+<Accordion title="Prefer World Configuration">
+When possible, add settings to `WorldConfiguration` to allow different values per dimension. Only use `GlobalConfiguration` for truly server-wide settings.
+</Accordion>
+
+<Accordion title="Provide Sensible Defaults">
+Always initialize fields with appropriate default values. This ensures the config works even if the file is missing.
+</Accordion>
+
+<Accordion title="Use Descriptive Names">
+Field names should clearly indicate what the setting controls. Avoid abbreviations unless they're industry-standard.
+</Accordion>
+
+<Accordion title="Add Comments for Complex Settings">
+Use `@Comment` annotations to explain what settings do and what values are acceptable.
+</Accordion>
+
+<Accordion title="Group Related Settings">
+Organize settings into logical inner classes. Don't add everything to a single "Misc" section.
+</Accordion>
+
+<Accordion title="Use Type-Safe Wrappers">
+Prefer `Duration`, `IntOr.Default`, etc. over raw primitives for better validation and readability.
+</Accordion>

@@ -1,0 +1,383 @@
+---
+title: 'Registry API'
+description: 'Access to Minecraft registries and data-driven content'
+---
+
+# Registry API
+
+Paper provides type-safe access to Minecraft's data-driven registries, allowing you to work with enchantments, biomes, items, and other game content in a safe, version-independent way.
+
+## What are Registries?
+
+Registries are collections of game content defined by Minecraft's data-driven system. Examples include:
+
+- Enchantments
+- Biomes
+- Items and blocks
+- Entities
+- Damage types
+- Game events
+- Structures
+
+## Registry Access
+
+### Basic Registry Access
+
+```java
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.NamespacedKey;
+
+// Get a registry
+Registry<Enchantment> enchantments = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.ENCHANTMENT);
+
+// Get specific entry by key
+Enchantment sharpness = enchantments.get(NamespacedKey.minecraft("sharpness"));
+
+// Iterate all entries
+for (Enchantment ench : enchantments) {
+    String name = ench.getKey().getKey();
+    // Process enchantment
+}
+```
+
+### Registry Keys
+
+Paper provides typed constants for registry entries:
+
+```java
+import io.papermc.paper.registry.keys.EnchantmentKeys;
+import io.papermc.paper.registry.keys.ItemTypeKeys;
+import io.papermc.paper.registry.keys.BiomeKeys;
+import io.papermc.paper.registry.keys.EntityTypeKeys;
+
+// Use registry keys for type-safe access
+Enchantment sharpness = enchantments.get(EnchantmentKeys.SHARPNESS);
+Enchantment protection = enchantments.get(EnchantmentKeys.PROTECTION);
+Enchantment fortune = enchantments.get(EnchantmentKeys.FORTUNE);
+Enchantment mending = enchantments.get(EnchantmentKeys.MENDING);
+```
+
+## Available Registries
+
+### Enchantments
+
+```java
+import org.bukkit.enchantments.Enchantment;
+import io.papermc.paper.registry.keys.EnchantmentKeys;
+
+// Get enchantment registry
+Registry<Enchantment> enchantments = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.ENCHANTMENT);
+
+// Common enchantments
+Enchantment sharpness = enchantments.get(EnchantmentKeys.SHARPNESS);
+Enchantment efficiency = enchantments.get(EnchantmentKeys.EFFICIENCY);
+Enchantment unbreaking = enchantments.get(EnchantmentKeys.UNBREAKING);
+Enchantment looting = enchantments.get(EnchantmentKeys.LOOTING);
+Enchantment fortune = enchantments.get(EnchantmentKeys.FORTUNE);
+Enchantment silkTouch = enchantments.get(EnchantmentKeys.SILK_TOUCH);
+
+// Apply to item
+ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
+ItemMeta meta = item.getItemMeta();
+meta.addEnchant(sharpness, 5, true);
+item.setItemMeta(meta);
+```
+
+### Biomes
+
+```java
+import org.bukkit.block.Biome;
+import io.papermc.paper.registry.keys.BiomeKeys;
+
+// Get biome registry
+Registry<Biome> biomes = Registry.BIOME;
+
+// Common biomes
+Biome plains = biomes.get(BiomeKeys.PLAINS);
+Biome desert = biomes.get(BiomeKeys.DESERT);
+Biome forest = biomes.get(BiomeKeys.FOREST);
+Biome ocean = biomes.get(BiomeKeys.OCEAN);
+Biome mountains = biomes.get(BiomeKeys.MOUNTAINS);
+
+// Get biome at location
+Biome locationBiome = world.getBiome(x, y, z);
+
+// Set biome
+world.setBiome(x, y, z, plains);
+```
+
+### Items and Blocks
+
+```java
+import io.papermc.paper.registry.keys.ItemTypeKeys;
+import io.papermc.paper.registry.keys.BlockTypeKeys;
+import org.bukkit.Material;
+
+// Material is already a registry
+Material diamond = Material.DIAMOND;
+Material stone = Material.STONE;
+
+// Using registry keys
+Material diamondSword = Registry.MATERIAL.get(ItemTypeKeys.DIAMOND_SWORD);
+Material ironBlock = Registry.MATERIAL.get(BlockTypeKeys.IRON_BLOCK);
+
+// Iterate all items
+for (Material mat : Material.values()) {
+    if (mat.isItem()) {
+        // Process item
+    }
+}
+```
+
+### Entity Types
+
+```java
+import org.bukkit.entity.EntityType;
+import io.papermc.paper.registry.keys.EntityTypeKeys;
+
+// EntityType is already a registry
+EntityType zombie = EntityType.ZOMBIE;
+EntityType creeper = EntityType.CREEPER;
+
+// Using registry keys (when available)
+// Note: Some registries have keys, others don't
+```
+
+### Damage Types
+
+```java
+import io.papermc.paper.registry.keys.DamageTypeKeys;
+import org.bukkit.damage.DamageType;
+
+// Get damage type registry
+Registry<DamageType> damageTypes = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.DAMAGE_TYPE);
+
+// Common damage types
+DamageType fall = damageTypes.get(DamageTypeKeys.FALL);
+DamageType fire = damageTypes.get(DamageTypeKeys.IN_FIRE);
+DamageType drowning = damageTypes.get(DamageTypeKeys.DROWN);
+```
+
+### Game Events
+
+```java
+import io.papermc.paper.registry.keys.GameEventKeys;
+import org.bukkit.GameEvent;
+
+// Get game event registry
+Registry<GameEvent> gameEvents = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.GAME_EVENT);
+
+// Common game events
+GameEvent blockPlace = gameEvents.get(GameEventKeys.BLOCK_PLACE);
+GameEvent blockDestroy = gameEvents.get(GameEventKeys.BLOCK_DESTROY);
+GameEvent entityPlace = gameEvents.get(GameEventKeys.ENTITY_PLACE);
+GameEvent step = gameEvents.get(GameEventKeys.STEP);
+```
+
+### Instruments
+
+```java
+import io.papermc.paper.registry.keys.InstrumentKeys;
+import org.bukkit.MusicInstrument;
+
+// Get instrument registry
+Registry<MusicInstrument> instruments = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.INSTRUMENT);
+
+// Note block instruments
+MusicInstrument harp = instruments.get(InstrumentKeys.PONDER_GOAT_HORN);
+```
+
+### Jukebox Songs
+
+```java
+import io.papermc.paper.registry.keys.JukeboxSongKeys;
+import org.bukkit.JukeboxSong;
+
+// Get jukebox song registry
+Registry<JukeboxSong> songs = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.JUKEBOX_SONG);
+
+// Music discs
+JukeboxSong cat = songs.get(JukeboxSongKeys.CAT);
+JukeboxSong pigstep = songs.get(JukeboxSongKeys.PIGSTEP);
+```
+
+## Registry Keys
+
+All available registry key classes:
+
+```java
+import io.papermc.paper.registry.keys.*;
+
+// Entity and item related
+AttributeKeys
+BannerPatternKeys
+BlockTypeKeys
+ItemTypeKeys
+EntityTypeKeys
+
+// World related
+BiomeKeys
+StructureKeys
+FluidKeys
+
+// Gameplay
+EnchantmentKeys
+GameEventKeys
+DamageTypeKeys
+
+// Customization
+InstrumentKeys
+JukeboxSongKeys
+CatVariantKeys
+WolfVariantKeys
+FrogVariantKeys
+
+// Data components
+DataComponentTypeKeys
+```
+
+## NamespacedKey
+
+All registry entries are identified by NamespacedKeys:
+
+```java
+import org.bukkit.NamespacedKey;
+
+// Minecraft namespace (vanilla content)
+NamespacedKey vanillaKey = NamespacedKey.minecraft("diamond_sword");
+
+// Plugin namespace (custom content)
+NamespacedKey pluginKey = new NamespacedKey(plugin, "custom_item");
+
+// From string
+NamespacedKey key = NamespacedKey.fromString("minecraft:stone");
+
+// Get parts
+String namespace = key.getNamespace(); // "minecraft"
+String value = key.getKey(); // "diamond_sword"
+String full = key.toString(); // "minecraft:diamond_sword"
+```
+
+## Custom Registry Content
+
+While you can't add new registry entries at runtime (they're defined by datapacks), you can:
+
+1. **Use datapacks** to add custom content
+2. **Check if content exists** before using it
+3. **Iterate available content** from mods/datapacks
+
+```java
+// Check if custom enchantment exists
+NamespacedKey customKey = NamespacedKey.fromString("mypack:custom_enchant");
+Enchantment custom = enchantments.get(customKey);
+
+if (custom != null) {
+    // Custom enchantment is available
+    meta.addEnchant(custom, 1, true);
+}
+
+// List all enchantments (including custom from datapacks)
+for (Enchantment ench : enchantments) {
+    NamespacedKey key = ench.getKey();
+    if (!key.getNamespace().equals("minecraft")) {
+        // Custom enchantment from datapack or mod
+        logger.info("Found custom enchantment: " + key);
+    }
+}
+```
+
+## Datapack Integration
+
+Manage datapacks that provide registry content:
+
+```java
+import io.papermc.paper.datapack.Datapack;
+import io.papermc.paper.datapack.DatapackManager;
+
+DatapackManager manager = Bukkit.getDatapackManager();
+
+// Get all datapacks
+Collection<Datapack> packs = manager.getPacks();
+
+// Enable datapack
+Datapack customPack = manager.getPack("my_custom_pack");
+if (customPack != null) {
+    customPack.setEnabled(true);
+    
+    // Refresh to apply changes
+    manager.refreshPacks();
+}
+```
+
+## Registry Best Practices
+
+<Tip>
+  Use registry keys (e.g., `EnchantmentKeys.SHARPNESS`) instead of string-based lookups for type safety and better IDE support.
+</Tip>
+
+<Note>
+  Registry content is loaded from datapacks and cannot be modified at runtime. Use datapacks to add custom content.
+</Note>
+
+<Warning>
+  Always null-check when getting registry entries by key, especially for custom content that may not be present.
+</Warning>
+
+## Common Patterns
+
+### Safe Registry Access
+
+```java
+public Enchantment getEnchantment(String name) {
+    NamespacedKey key = NamespacedKey.minecraft(name);
+    Enchantment ench = Registry.ENCHANTMENT.get(key);
+    
+    if (ench == null) {
+        throw new IllegalArgumentException("Unknown enchantment: " + name);
+    }
+    
+    return ench;
+}
+```
+
+### Registry Iteration
+
+```java
+public void listAllEnchantments() {
+    Registry<Enchantment> registry = RegistryAccess.registryAccess()
+        .getRegistry(RegistryKey.ENCHANTMENT);
+    
+    for (Enchantment ench : registry) {
+        NamespacedKey key = ench.getKey();
+        String name = key.getKey();
+        int maxLevel = ench.getMaxLevel();
+        
+        logger.info(String.format("%s (max level: %d)", name, maxLevel));
+    }
+}
+```
+
+## Resources
+
+- **[Paper Javadocs](https://papermc.io/javadocs/)** - Complete registry API reference
+- **[Minecraft Wiki - Data Pack](https://minecraft.wiki/w/Data_pack)** - Creating custom registry content
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Datapack Management" href="/api/paper-api#datapack-api">
+    Manage datapacks at runtime
+  </Card>
+  <Card title="Events API" href="/api/events">
+    Handle registry-related events
+  </Card>
+</CardGroup>

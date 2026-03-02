@@ -1,0 +1,262 @@
+---
+title: paper-plugin.yml Format
+description: Complete reference for the paper-plugin.yml configuration file
+---
+
+The `paper-plugin.yml` file is the plugin descriptor for Paper plugins. It must be located in your plugin's `src/main/resources` directory and contains metadata about your plugin.
+
+<Note>
+  Paper supports both `paper-plugin.yml` (modern format) and `plugin.yml` (legacy Bukkit format). The `paper-plugin.yml` format is recommended for new plugins.
+</Note>
+
+## Required Fields
+
+These fields must be present in every `paper-plugin.yml` file:
+
+### name
+
+The unique identifier for your plugin. Used for dependency resolution and the data folder name.
+
+```yaml
+name: MyPlugin
+```
+
+**Constraints**:
+- Only alphanumeric characters, underscores, hyphens, and periods: `[a-zA-Z0-9_\-\.]`
+- Must be unique across all loaded plugins
+
+### version
+
+The version of your plugin. No specific format is enforced, but semantic versioning is recommended.
+
+```yaml
+version: 1.0.0
+```
+
+### main
+
+The fully qualified class name of your main plugin class. Must extend `org.bukkit.plugin.java.JavaPlugin`.
+
+```yaml
+main: com.example.myplugin.MyPlugin
+```
+
+## Optional Fields
+
+### api-version
+
+The Minecraft API version your plugin is built for (e.g., `1.21`, `1.20`). This helps maintain compatibility.
+
+```yaml
+api-version: '1.21'
+```
+
+<Tip>
+  Always specify the `api-version` to ensure your plugin works correctly across different Paper versions.
+</Tip>
+
+### description
+
+A human-friendly description of what your plugin does.
+
+```yaml
+description: A plugin that adds custom gameplay features
+```
+
+### author / authors
+
+The author(s) of the plugin. Use `author` for a single author or `authors` for multiple.
+
+```yaml
+author: PlayerName
+```
+
+```yaml
+authors:
+  - PlayerOne
+  - PlayerTwo
+```
+
+### contributors
+
+People who contributed to the plugin but are not primary authors.
+
+```yaml
+contributors:
+  - ContributorOne
+  - ContributorTwo
+```
+
+### website
+
+A website URL for the plugin or author.
+
+```yaml
+website: https://example.com
+```
+
+### prefix
+
+Custom prefix for the plugin's logger. By default, the plugin name is used.
+
+```yaml
+prefix: MyCustomPrefix
+```
+
+## Dependency Management
+
+### load
+
+Specifies when the plugin should be loaded during server startup.
+
+```yaml
+load: STARTUP
+```
+
+Valid values (from `org.bukkit.plugin.PluginLoadOrder`):
+- `STARTUP` - Load during server startup (before worlds)
+- `POSTWORLD` - Load after worlds are loaded (default)
+
+### dependencies
+
+Plugins that must be loaded before this plugin. The server will fail to load your plugin if these are missing.
+
+```yaml
+dependencies:
+  server:
+    - RequiredPlugin
+    - AnotherRequiredPlugin
+```
+
+<Warning>
+  If any listed dependencies are not installed, your plugin will fail to load.
+</Warning>
+
+### softdepends
+
+Plugins that should load before this plugin if they're present, but aren't required.
+
+```yaml
+softdepends:
+  server:
+    - OptionalPlugin
+```
+
+### loadbefore
+
+Plugins that should load after this plugin, without being dependencies.
+
+```yaml
+loadbefore:
+  server:
+    - PluginToLoadAfter
+```
+
+### provides
+
+Other plugin names that this plugin provides/implements.
+
+```yaml
+provides:
+  server:
+    - AlternativePluginName
+```
+
+## Advanced Features
+
+### bootstrapper
+
+A class implementing `io.papermc.paper.plugin.bootstrap.PluginBootstrap` for early initialization.
+
+```yaml
+bootstrapper: com.example.myplugin.MyPluginBootstrap
+```
+
+The bootstrapper runs before the main plugin class and allows initialization before the server fully loads.
+
+<Note>
+  Bootstrappers are experimental. Only use API methods documented to work during bootstrap.
+</Note>
+
+### loader
+
+A class implementing `io.papermc.paper.plugin.loader.PluginLoader` for configuring the plugin's classpath.
+
+```yaml
+loader: com.example.myplugin.MyPluginLoader
+```
+
+Useful for loading external libraries at runtime.
+
+## Permissions
+
+### defaultPerm
+
+The default permission level for all permissions defined in this plugin.
+
+```yaml
+defaultPerm: OP
+```
+
+Valid values (from `org.bukkit.permissions.PermissionDefault`):
+- `TRUE` - Everyone has permission by default
+- `FALSE` - No one has permission by default
+- `OP` - Only operators have permission (default)
+- `NOT_OP` - Only non-operators have permission
+
+### permissions
+
+Define permissions for your plugin.
+
+```yaml
+permissions:
+  myplugin.use:
+    description: Allows using the plugin
+    default: true
+  myplugin.admin:
+    description: Administrative permissions
+    default: op
+    children:
+      myplugin.use: true
+```
+
+## Complete Example
+
+Here's a complete example from the Paper test plugin:
+
+```yaml
+name: Paper-Test-Plugin
+version: ${version}
+main: io.papermc.testplugin.TestPlugin
+description: Paper Test Plugin
+author: PaperMC
+api-version: ${apiversion}
+load: STARTUP
+bootstrapper: io.papermc.testplugin.TestPluginBootstrap
+loader: io.papermc.testplugin.TestPluginLoader
+defaultPerm: FALSE
+permissions:
+dependencies:
+```
+
+## Migration from plugin.yml
+
+If you're migrating from the legacy `plugin.yml` format:
+
+1. Rename `plugin.yml` to `paper-plugin.yml`
+2. Update dependency format from flat lists to the new structured format:
+   ```yaml
+   # Old format (plugin.yml)
+   depend: [PluginA, PluginB]
+   
+   # New format (paper-plugin.yml)
+   dependencies:
+     server:
+       - PluginA
+       - PluginB
+   ```
+3. Commands are no longer supported in YAML - use the `JavaPlugin.registerCommand()` method instead
+
+<Warning>
+  Paper plugins do not support YAML-based command declarations. You must register commands programmatically using `JavaPlugin.registerCommand()`.
+</Warning>

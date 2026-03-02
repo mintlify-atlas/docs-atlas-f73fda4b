@@ -1,0 +1,312 @@
+---
+title: Gradle Tasks Reference
+description: Complete reference of available Gradle tasks for Paper development
+---
+
+Paper uses Gradle as its build system. This page documents the most important tasks available for building, testing, and developing Paper.
+
+## Viewing All Tasks
+
+To see a complete list of available tasks with descriptions:
+
+```bash
+./gradlew tasks
+```
+
+## Core Build Tasks
+
+These tasks are essential for compiling Paper from source.
+
+### applyPatches
+
+Applies Paper's patches to the Minecraft source code.
+
+```bash
+./gradlew applyPatches
+```
+
+<Note>
+You must run this task before you can build Paper or make code changes. This task creates the `paper-server/src/minecraft` directory with Paper's modified Minecraft source.
+</Note>
+
+### rebuildPatches
+
+Rebuilds Paper's patch files from your current changes in the source directory.
+
+```bash
+./gradlew rebuildPatches
+```
+
+Use this after making changes to `paper-server/src/minecraft` or `paper-api` to convert your commits into patch files.
+
+### fixupSourcePatches
+
+Automatically fixes up per-file patches when you make changes to Minecraft source files.
+
+```bash
+./gradlew fixupSourcePatches
+```
+
+After making changes to files in `paper-server/src/minecraft`, run this task followed by `rebuildPatches`.
+
+## Server Build Tasks
+
+These tasks create runnable server JAR files in different formats.
+
+### createMojmapBundlerJar
+
+Creates a Mojang-mapped bundler JAR file (recommended for development).
+
+```bash
+./gradlew createMojmapBundlerJar
+```
+
+<Note>
+**Output:** `paper-server/build/libs/paper-bundler-<version>-mojmap.jar`
+
+This is the primary build task mentioned in Paper's README.
+</Note>
+
+### createReobfBundlerJar
+
+Creates a reobfuscated bundler JAR file (for production).
+
+```bash
+./gradlew createReobfBundlerJar
+```
+
+**Output:** `paper-server/build/libs/paper-bundler-<version>-reobf.jar`
+
+### createMojmapPaperclipJar
+
+Creates a Mojang-mapped Paperclip JAR file.
+
+```bash
+./gradlew createMojmapPaperclipJar
+```
+
+**Output:** `paper-server/build/libs/paper-paperclip-<version>-mojmap.jar`
+
+### createReobfPaperclipJar
+
+Creates a reobfuscated Paperclip JAR file.
+
+```bash
+./gradlew createReobfPaperclipJar
+```
+
+**Output:** `paper-server/build/libs/paper-paperclip-<version>-reobf.jar`
+
+### jar
+
+Creates the basic server JAR without bundling.
+
+```bash
+./gradlew jar
+```
+
+**Output:** `paper-server/build/libs/paper-server-<version>.jar`
+
+### reobfJar
+
+Creates a reobfuscated server JAR.
+
+```bash
+./gradlew reobfJar
+```
+
+## Testing Tasks
+
+### test
+
+Runs Paper's test suite.
+
+```bash
+./gradlew test
+```
+
+<Note>
+The test configuration automatically:
+- Runs tests in a temporary working directory
+- Uses JUnit Platform with tag filtering (excludes "Slow" tests)
+- Forks for each test class
+- Includes Mockito agent for Java 21+ compatibility
+</Note>
+
+### check
+
+Runs all verification tasks including tests and code scanning.
+
+```bash
+./gradlew check
+```
+
+This task includes:
+- Running the test suite
+- Scanning the JAR for bad API calls (`@DoNotUse` annotations)
+
+## Development Server Tasks
+
+These tasks let you quickly spin up a test server without manually running JAR files.
+
+### runDevServer
+
+Runs a development server directly from compiled classes (fastest for testing changes).
+
+```bash
+./gradlew runDevServer
+```
+
+<Warning>
+This task doesn't create a JAR file - it runs directly from the build output. Perfect for rapid iteration during development.
+</Warning>
+
+### runServer
+
+Runs a test server from the Mojang-mapped JAR.
+
+```bash
+./gradlew runServer
+```
+
+### runReobfServer
+
+Runs a test server from the reobfuscated JAR.
+
+```bash
+./gradlew runReobfServer
+```
+
+### runBundler
+
+Runs a test server from the Mojang-mapped bundler JAR.
+
+```bash
+./gradlew runBundler
+```
+
+### runReobfBundler
+
+Runs a test server from the reobfuscated bundler JAR.
+
+```bash
+./gradlew runReobfBundler
+```
+
+### runPaperclip
+
+Runs a test server from the Mojang-mapped Paperclip JAR.
+
+```bash
+./gradlew runPaperclip
+```
+
+### runReobfPaperclip
+
+Runs a test server from the reobfuscated Paperclip JAR.
+
+```bash
+./gradlew runReobfPaperclip
+```
+
+<Note>
+All run tasks:
+- Use the directory specified by `paper.runWorkDir` property (defaults to `run/`)
+- Add the test plugin automatically if enabled
+- Start with `--nogui` flag
+- Allocate memory based on `paper.runMemoryGb` property (default: 2GB)
+- Support enhanced class redefinition for hot-swapping
+</Note>
+
+## Publishing Tasks
+
+### publishToMavenLocal
+
+Publishes Paper API and Server to your local Maven repository.
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+Useful for testing Paper changes in your own plugins locally.
+
+### generateDevelopmentBundle
+
+Generates a development bundle for plugin development.
+
+```bash
+./gradlew generateDevelopmentBundle
+```
+
+## Utility Tasks
+
+### printMinecraftVersion
+
+Prints the Minecraft version Paper is built for.
+
+```bash
+./gradlew printMinecraftVersion
+```
+
+### printPaperVersion
+
+Prints the current Paper version.
+
+```bash
+./gradlew printPaperVersion
+```
+
+### clean
+
+Removes all build outputs.
+
+```bash
+./gradlew clean
+```
+
+<Warning>
+This removes the `build/` directories but does not remove the patched source. Use `cleanCache` if you need a full reset.
+</Warning>
+
+## Task Configuration
+
+You can customize task behavior using Gradle properties in `gradle.properties`:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `paper.runWorkDir` | `run` | Directory for test server files |
+| `paper.runMemoryGb` | `2` | Memory allocation for run tasks (GB) |
+| `paper.runDisableWatchdog` | `false` | Disable server watchdog |
+| `mcVersion` | *(set in project)* | Minecraft version to build |
+
+## Common Task Chains
+
+### Full Clean Build
+
+```bash
+./gradlew clean applyPatches createMojmapBundlerJar
+```
+
+### Development Workflow
+
+```bash
+# 1. Make changes to source
+# 2. Test changes
+./gradlew runDevServer
+
+# 3. Rebuild patches
+./gradlew fixupSourcePatches rebuildPatches
+```
+
+### Testing Plugin Compatibility
+
+```bash
+./gradlew publishToMavenLocal
+# Then use Paper in your plugin project
+```
+
+## Next Steps
+
+- [Set up your development environment](/advanced/development-setup)
+- [Build Paper from source](/advanced/building)
+- Read [CONTRIBUTING.md](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md) for patch development guidelines

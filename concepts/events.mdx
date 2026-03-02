@@ -1,0 +1,293 @@
+---
+title: Event System Architecture
+description: Understanding how Paper's event system works under the hood
+---
+
+## Overview
+
+Paper's event system enables plugins to respond to game events through a listener-based architecture. The system is designed for high performance with minimal overhead, using array-backed handler lists and priority-based execution.
+
+## Core Components
+
+### Event Class
+
+All events extend `org.bukkit.event.Event`, which provides:
+
+```java
+public abstract class Event {
+    private final boolean isAsync;
+    
+    public Event() {
+        this(false);
+    }
+    
+    public Event(boolean isAsync) {
+        this.isAsync = isAsync;
+    }
+    
+    public abstract HandlerList getHandlers();
+    public final boolean isAsynchronous() { ... }
+}
+```
+
+<Info>
+Every event must have a static `getHandlerList()` method that returns the same `HandlerList` instance as the instance `getHandlers()` method.
+</Info>
+
+### HandlerList
+
+The `HandlerList` class is the key to Paper's event performance:
+
+```java
+public class HandlerList {
+    // Array-backed for speed
+    private volatile RegisteredListener[] handlers = null;
+    
+    // Dynamic lists per priority
+    private final EnumMap<EventPriority, ArrayList<RegisteredListener>> handlerslots;
+    
+    // All handler lists for batch operations
+    private static final ArrayList<HandlerList> allLists = new ArrayList<>();
+}
+```
+
+**Key Design Decisions:**
+
+- **Array-backed storage** - Handlers are "baked" into an array for fast iteration
+- **Priority-based slots** - Listeners are organized by `EventPriority` (LOWEST to MONITOR)
+- **Lazy baking** - The handler array is only rebuilt when listeners change
+- **Global tracking** - All `HandlerList` instances are tracked for batch operations
+
+<Note>
+The handler array is the secret to this system's speed - array iteration is significantly faster than list iteration.
+</Note>
+
+### RegisteredListener
+
+`RegisteredListener` wraps:
+- The `Listener` instance (the plugin class with event methods)
+- The `EventExecutor` (invokes the specific handler method)
+- The `Plugin` that registered the listener
+- The `EventPriority` for execution order
+- Ignore cancelled flag
+
+### EventExecutor
+
+The `EventExecutor` interface handles calling event handler methods:
+
+```java
+public interface EventExecutor {
+    void execute(@NotNull Listener listener, @NotNull Event event) throws EventException;
+}
+```
+
+Paper uses `EventExecutorFactory` to create optimized executors that:
+- Directly invoke handler methods without reflection overhead
+- Validate method signatures at registration time
+- Handle accessibility automatically
+
+<Tip>
+Paper's event executors are generated at runtime for optimal performance, avoiding reflection during event firing.
+</Tip>
+
+## Event Lifecycle
+
+### 1. Event Registration
+
+When a plugin registers listeners:
+
+```
+PluginManager.registerEvents(listener, plugin)
+  ↓
+Scan for @EventHandler methods
+  ↓
+Create EventExecutor for each method
+  ↓
+Create RegisteredListener instances
+  ↓
+Add to appropriate HandlerList by priority
+  ↓
+Mark HandlerList as needing rebake (handlers = null)
+```
+
+### 2. Handler Baking
+
+Before event firing, handlers are "baked" into an array:
+
+```java
+public synchronized void bake() {
+    if (handlers != null) return; // Already baked
+    
+    List<RegisteredListener> entries = new ArrayList<>();
+    for (Entry<EventPriority, ArrayList<RegisteredListener>> entry : handlerslots.entrySet()) {
+        entries.addAll(entry.getValue());
+    }
+    handlers = entries.toArray(new RegisteredListener[entries.size()]);
+}
+```
+
+<Info>
+Baking happens automatically on-demand. The handler array remains valid until a listener is added or removed.
+</Info>
+
+### 3. Event Firing
+
+When an event is fired:
+
+```
+PluginManager.callEvent(event)
+  ↓
+Get HandlerList from event.getHandlers()
+  ↓
+Get baked RegisteredListener array
+  ↓
+Iterate array in priority order:
+  - LOWEST
+  - LOW
+  - NORMAL
+  - HIGH
+  - HIGHEST
+  - MONITOR
+  ↓
+For each RegisteredListener:
+  - Check if should ignore cancelled
+  - Execute via EventExecutor
+```
+
+## Event Priorities
+
+Paper executes event handlers in priority order:
+
+| Priority | Use Case |
+|----------|----------|
+| `LOWEST` | Early modification, before other plugins |
+| `LOW` | General early handling |
+| `NORMAL` | Default priority for most handlers |
+| `HIGH` | Late handling, after most plugins |
+| `HIGHEST` | Final modifications |
+| `MONITOR` | Read-only observation, should not modify |
+
+<Note>
+The `MONITOR` priority should never modify the event or its outcome - it's for logging and observation only.
+</Note>
+
+## Synchronous vs Asynchronous Events
+
+Events can be synchronous or asynchronous:
+
+### Synchronous Events (default)
+
+- Fired on the main server thread
+- Can safely modify game state
+- Must complete quickly to avoid lag
+- Most game events are synchronous
+
+### Asynchronous Events
+
+```java
+public class MyAsyncEvent extends Event {
+    public MyAsyncEvent() {
+        super(true); // Mark as async
+    }
+}
+```
+
+**Asynchronous event caveats:**
+- Cannot be fired from synchronous event handlers (throws `IllegalStateException`)
+- May fire multiple times simultaneously
+- Handlers can block without affecting server performance
+- Cannot safely modify game state directly
+- Not included in plugin timing reports
+
+<Tip>
+Async event handlers that need to modify game state should schedule synchronous tasks using the scheduler.
+</Tip>
+
+## Cancellable Events
+
+Events implementing `Cancellable` can be cancelled:
+
+```java
+@EventHandler
+public void onBlockBreak(BlockBreakEvent event) {
+    event.setCancelled(true); // Prevent block breaking
+}
+```
+
+Listeners can ignore cancelled events:
+
+```java
+@EventHandler(ignoreCancelled = true)
+public void onBlockBreak(BlockBreakEvent event) {
+    // Won't be called if event is already cancelled
+}
+```
+
+## Performance Optimizations
+
+<Accordion title="Array-Backed Handler Storage">
+Handlers are stored in a volatile array field that's iterated during event firing. Array iteration is significantly faster than list iteration, especially for frequently-fired events.
+</Accordion>
+
+<Accordion title="Lazy Baking">
+The handler array is only rebuilt when listeners are added or removed. Most of the time, events use the pre-baked array for maximum speed.
+</Accordion>
+
+<Accordion title="Generated Event Executors">
+Paper generates optimized event executors at runtime instead of using reflection, eliminating the overhead of `Method.invoke()`.
+</Accordion>
+
+<Accordion title="Priority Slots">
+Using an EnumMap for priority slots provides O(1) access while maintaining order, making registration and baking efficient.
+</Accordion>
+
+## Global Handler Operations
+
+Paper tracks all `HandlerList` instances for batch operations:
+
+```java
+// Unregister all listeners from all events
+HandlerList.unregisterAll();
+
+// Unregister specific plugin from all events
+HandlerList.unregisterAll(plugin);
+
+// Bake all handler lists at once
+HandlerList.bakeAll();
+```
+
+<Info>
+`bakeAll()` is called after all plugins load to pre-bake all handler arrays before events start firing.
+</Info>
+
+## Event Type Tracking
+
+Paper tracks which event types have been instantiated:
+
+```java
+private static final java.util.Set<String> EVENT_TYPES = 
+    java.util.concurrent.ConcurrentHashMap.newKeySet();
+```
+
+This enables:
+- Debugging which events are in use
+- Performance monitoring
+- Event system introspection
+
+## Best Practices
+
+<Accordion title="Use Appropriate Priorities">
+Don't default everything to HIGHEST - use NORMAL for most handlers and only use other priorities when you specifically need to run before or after other plugins.
+</Accordion>
+
+<Accordion title="Don't Block in Event Handlers">
+Event handlers should complete quickly. Long-running operations should be scheduled asynchronously to avoid blocking the server thread.
+</Accordion>
+
+<Accordion title="Respect MONITOR Priority">
+Never modify events or game state in MONITOR handlers - this priority is for observation only.
+</Accordion>
+
+<Accordion title="Minimize Event Handler Count">
+Each registered handler adds overhead. Combine related logic into fewer handlers when possible.
+</Accordion>

@@ -1,0 +1,144 @@
+---
+title: Building Paper from Source
+description: Learn how to compile Paper from source code
+---
+
+This guide walks you through building Paper from source code. Paper requires JDK 21 and an internet connection to compile.
+
+## Prerequisites
+
+<Warning>
+Paper requires **JDK 21** to build. The build system uses Gradle's Toolchains feature, which can automatically provision JDK 21 for compilation if you have JRE 17 or later installed.
+</Warning>
+
+Before you begin, ensure you have:
+
+- **Git** - Version control system
+- **JDK 21 or later** - [Adoptium](https://adoptium.net/) provides builds for most operating systems
+- **Internet connection** - Required for downloading dependencies
+
+### Windows Users
+
+<Note>
+If you're on Windows, it's highly recommended to use **WSL 2** (Windows Subsystem for Linux) for significantly faster build times.
+</Note>
+
+WSL 2 is available on Windows 10 version 2004 (build 19041) or higher. You can check your version by running `winver`.
+
+To set up WSL 2:
+1. Follow the [official WSL installation guide](https://learn.microsoft.com/en-us/windows/wsl/install)
+2. Install Ubuntu from the Microsoft Store
+3. Install required tools: `sudo apt-get update && sudo apt-get install git -y`
+4. Install a Java 21 JDK from [Adoptium](https://adoptium.net/)
+
+## Build Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Paper repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/PaperMC/Paper.git
+    cd Paper
+    ```
+  </Step>
+
+  <Step title="Apply patches">
+    Apply Paper's patches to create the modified Minecraft source:
+    
+    <CodeGroup>
+    ```bash Linux/macOS
+    ./gradlew applyPatches
+    ```
+    
+    ```bash Windows (without WSL)
+    gradlew applyPatches
+    ```
+    </CodeGroup>
+    
+    This command applies Paper's modifications to the Minecraft source files. The process may take several minutes on the first run.
+  </Step>
+
+  <Step title="Build the server">
+    Compile Paper into a runnable JAR file:
+    
+    <CodeGroup>
+    ```bash Linux/macOS
+    ./gradlew createMojmapBundlerJar
+    ```
+    
+    ```bash Windows (without WSL)
+    gradlew createMojmapBundlerJar
+    ```
+    </CodeGroup>
+    
+    <Note>
+    The first build will download all necessary dependencies and may take 5-15 minutes depending on your internet connection and hardware.
+    </Note>
+  </Step>
+
+  <Step title="Locate the compiled JAR">
+    After a successful build, find your compiled server JAR at:
+    
+    ```
+    paper-server/build/libs/paper-server-<version>.jar
+    ```
+    
+    This JAR file is ready to run as a Minecraft server.
+  </Step>
+</Steps>
+
+## Build Outputs
+
+Paper's build system can create several different JAR formats:
+
+| Build Task | Output Location | Description |
+|------------|----------------|-------------|
+| `createMojmapBundlerJar` | `paper-server/build/libs/` | Mojang-mapped bundler JAR (recommended for development) |
+| `createReobfBundlerJar` | `paper-server/build/libs/` | Reobfuscated bundler JAR (production) |
+| `createMojmapPaperclipJar` | `paper-server/build/libs/` | Mojang-mapped Paperclip JAR |
+| `createReobfPaperclipJar` | `paper-server/build/libs/` | Reobfuscated Paperclip JAR (production) |
+
+<Note>
+**Mojmap vs Reobf:** Mojang-mapped JARs use readable names for better debugging. Reobfuscated JARs are optimized for production use.
+</Note>
+
+## Docker Build
+
+You can also compile Paper using Docker with Adoptium's official images:
+
+```bash
+docker run -it -v "$(pwd)":/data --rm eclipse-temurin:21.0.5_11-jdk bash
+```
+
+Once inside the container:
+
+```bash
+cd /data
+./gradlew applyPatches
+./gradlew createMojmapBundlerJar
+```
+
+## Troubleshooting
+
+### Build fails with "JAVA_HOME not set"
+
+Ensure JDK 21 is installed and `JAVA_HOME` environment variable points to your JDK installation:
+
+```bash
+export JAVA_HOME=/path/to/jdk-21
+```
+
+### Out of memory errors
+
+The build system automatically allocates 1GB of memory for compilation. If you encounter OOM errors, increase available system memory or close other applications.
+
+### Slow build times on Windows
+
+Switch to WSL 2 for significantly faster build performance. Native Windows builds can be 5-10x slower than WSL 2.
+
+## Next Steps
+
+- [View available Gradle tasks](/advanced/gradle-tasks)
+- [Set up your development environment](/advanced/development-setup)
+- Read the [CONTRIBUTING.md](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md) for patch development guidelines

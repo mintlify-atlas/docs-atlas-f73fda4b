@@ -1,0 +1,122 @@
+---
+title: Paper Architecture Overview
+description: Understanding Paper's modular architecture and how it extends Minecraft
+---
+
+## Overview
+
+Paper is built on a modular architecture that separates API definitions from their implementation. This design enables plugin developers to write code against a stable API while Paper maintains the complex Minecraft server implementation.
+
+## Module Structure
+
+Paper consists of two primary modules:
+
+### paper-api
+
+The **paper-api** module contains the public-facing API that plugin developers interact with. This includes:
+
+- Event classes (extending `org.bukkit.event.Event`)
+- Plugin interfaces and abstract classes
+- Service definitions and contracts
+- Public data structures and enums
+
+The API is designed to remain stable across minor version updates, allowing plugins to function without recompilation when Paper updates.
+
+<Info>
+The API module has no direct dependencies on Minecraft code, making it clean and version-independent.
+</Info>
+
+### paper-server
+
+The **paper-server** module implements the API and contains:
+
+- Patched Minecraft source code in `paper-server/src/minecraft`
+- Implementation of API interfaces using Minecraft internals
+- Performance optimizations and bug fixes
+- Configuration system (`io.papermc.paper.configuration` package)
+
+<Note>
+Only changes made in `paper-server/src/minecraft` interact with the patch system. Other changes in paper-server are direct modifications.
+</Note>
+
+## How Modules Work Together
+
+The relationship between the modules follows this flow:
+
+1. **Plugin Code** → Uses `paper-api` interfaces and classes
+2. **paper-api** → Defines contracts without implementation
+3. **paper-server** → Implements API contracts using Minecraft code
+4. **Minecraft Source** → Patched with Paper's modifications
+
+```
+Plugin
+  ↓ (uses)
+paper-api (interfaces, events)
+  ↓ (implemented by)
+paper-server (implementation + Minecraft patches)
+  ↓ (modifies)
+Minecraft Server (patched source)
+```
+
+## Source Code Organization
+
+### Minecraft Patched Source
+
+The `paper-server/src/minecraft` directory contains decompiled and deobfuscated Minecraft source files with Paper's patches applied. This directory structure:
+
+- Starts with vanilla Minecraft source as the initial commit
+- Has per-file patches applied as a single large commit
+- Contains individual feature patch commits on top
+
+<Tip>
+This git-based structure allows Paper to track exactly what changed and rebase patches when Minecraft updates.
+</Tip>
+
+### Configuration System
+
+The configuration architecture uses the `ConfigurationPart` pattern:
+
+- `GlobalConfiguration` - Server-wide settings (in `io.papermc.paper.configuration`)
+- `WorldConfiguration` - Per-world settings that can differ between dimensions
+
+Both extend the abstract `ConfigurationPart` class, which serves as a marker interface for configuration sections.
+
+## Build System
+
+Paper uses Gradle with specialized tasks:
+
+- `./gradlew applyPatches` - Applies all patches to Minecraft source
+- `./gradlew rebuildPatches` - Converts commits back into patch files
+- `./gradlew fixupSourcePatches` - Automatically fixes per-file patches
+
+<Info>
+The build system uses Gradle's Toolchains feature to automatically provision JDK 21 for compilation, even if you only have JRE 17 installed.
+</Info>
+
+## Access Transformers
+
+Paper uses access transformers (`build-data/paper.at`) to modify visibility of Minecraft classes, methods, and fields without patching. This allows:
+
+- Changing private fields to protected/public
+- Removing final modifiers
+- Accessing internal Minecraft APIs safely
+
+Access transformers are applied during the `applyPatches` task.
+
+## Key Design Principles
+
+<Accordion title="Separation of Concerns">
+The API and implementation are strictly separated, allowing the API to remain stable while implementation details can change.
+</Accordion>
+
+<Accordion title="Patch-Based Modifications">
+All Minecraft changes are tracked as patches, making it possible to rebase changes when Minecraft updates.
+</Accordion>
+
+<Accordion title="Version Compatibility">
+Paper maintains backward compatibility in the API while fixing bugs and adding features in the server implementation.
+</Accordion>
+
+<Accordion title="Performance First">
+Paper's architecture enables performance optimizations in the server module without affecting plugin compatibility.
+</Accordion>

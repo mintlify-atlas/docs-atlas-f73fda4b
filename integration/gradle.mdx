@@ -1,0 +1,152 @@
+---
+title: Gradle Integration
+description: Add the Paper API to your Gradle project
+---
+
+This guide shows you how to integrate the Paper API into your Gradle-based plugin project using Kotlin DSL.
+
+## Add the Paper Repository
+
+Add the Paper Maven repository to your `build.gradle.kts` file:
+
+```kotlin build.gradle.kts
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+```
+
+The Paper Maven repository at `repo.papermc.io` hosts all Paper API releases and snapshots.
+
+## Add the Paper API Dependency
+
+Add the Paper API as a compile-only dependency:
+
+```kotlin build.gradle.kts
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+```
+
+<Note>
+Use `compileOnly` (not `implementation`) because the Paper server provides the API at runtime. This prevents bundling the API into your plugin JAR.
+</Note>
+
+## Configure Java Toolchain
+
+Paper requires Java 21. Configure the Java toolchain in your build file:
+
+```kotlin build.gradle.kts
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+```
+
+Gradle's toolchain feature will automatically download JDK 21 if it's not already installed on your system.
+
+## Complete Example
+
+Here's a complete `build.gradle.kts` for a Paper plugin:
+
+```kotlin build.gradle.kts
+plugins {
+    `java-library`
+}
+
+group = "com.example"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+}
+```
+
+## Version Selection
+
+The Paper API version corresponds to the Minecraft version:
+
+- `1.21.11-R0.1-SNAPSHOT` - Development version for Minecraft 1.21.11
+- Update the version to match your target Minecraft release
+- The `-SNAPSHOT` suffix indicates an actively developed version
+
+Find available versions on the [Paper downloads page](https://papermc.io/downloads/paper).
+
+## Groovy DSL
+
+If you prefer Groovy DSL (`build.gradle`), use this syntax:
+
+<CodeGroup>
+```groovy build.gradle
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+```
+
+```kotlin build.gradle.kts
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+```
+</CodeGroup>
+
+## Build Your Plugin
+
+Compile and build your plugin JAR:
+
+```bash
+./gradlew build
+```
+
+The compiled plugin will be in `build/libs/`.
+
+## Next Steps
+
+After setting up Gradle integration:
+
+1. Create your plugin main class extending `JavaPlugin`
+2. Add a `paper-plugin.yml` or `plugin.yml` file
+3. Build with `./gradlew build`
+4. Deploy your plugin to a Paper server
+
+For testing local Paper API changes, see the [Publishing guide](/integration/publishing).

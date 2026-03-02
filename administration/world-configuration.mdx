@@ -1,0 +1,514 @@
+---
+title: 'World Configuration'
+description: 'Per-world Paper configuration options in config/paper-world-defaults.yml'
+---
+
+Paper's world configuration allows you to customize settings on a per-world basis. The default configuration is stored in `config/paper-world-defaults.yml`, and you can create world-specific overrides.
+
+## Location
+
+```
+server-root/
+└── config/
+    ├── paper-world-defaults.yml    # Default settings for all worlds
+    └── paper-world.yml              # World-specific overrides (auto-generated)
+```
+
+## Entity Settings
+
+### Spawning
+
+<AccordionGroup>
+  <Accordion title="Spawn Limits">
+    <ParamField path="entities.spawning.spawn-limits.[category]" type="integer" default="-1">
+      Per-world mob spawn limits for each category. -1 uses the server default from `bukkit.yml`.
+      
+      Categories: `monster`, `creature`, `ambient`, `axolotls`, `underground_water_creature`, `water_creature`, `water_ambient`
+      
+      ```yaml
+      spawn-limits:
+        monster: 70
+        creature: 10
+        ambient: 15
+        water_creature: 5
+      ```
+    </ParamField>
+
+    <ParamField path="entities.spawning.ticks-per-spawn.[category]" type="integer" default="-1">
+      Ticks between spawn attempts for each category. Higher values reduce spawn rates. -1 uses bukkit.yml defaults.
+    </ParamField>
+
+    <ParamField path="entities.spawning.per-player-mob-spawns" type="boolean" default="true">
+      Enable per-player mob spawning for more consistent spawning near players.
+      
+      <Tip>This creates a better single-player-like experience in multiplayer!</Tip>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Despawn Ranges">
+    <ParamField path="entities.spawning.despawn-ranges.[category].soft" type="integer" default="default">
+      Distance at which mobs begin to have a chance to despawn. Uses vanilla default if not set.
+    </ParamField>
+
+    <ParamField path="entities.spawning.despawn-ranges.[category].hard" type="integer" default="default">
+      Distance at which mobs immediately despawn. Uses vanilla default if not set.
+      
+      ```yaml
+      despawn-ranges:
+        monster:
+          soft: 32
+          hard: 128
+      ```
+    </ParamField>
+
+    <ParamField path="entities.spawning.despawn-range-shape" type="string" default="ellipsoid">
+      Shape used for calculating despawn ranges. Options: `ellipsoid` or `cylinder`.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Arrow Despawn">
+    <ParamField path="entities.spawning.non-player-arrow-despawn-rate" type="integer" default="default">
+      Ticks before arrows shot by non-players despawn. -1 disables despawning.
+    </ParamField>
+
+    <ParamField path="entities.spawning.creative-arrow-despawn-rate" type="integer" default="default">
+      Ticks before arrows shot by creative mode players despawn.
+    </ParamField>
+
+    <ParamField path="entities.spawning.max-arrow-despawn-invulnerability" type="integer" default="200">
+      Maximum invulnerability ticks for arrows before forced despawn. Set to -1 to disable.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Special Spawning">
+    <ParamField path="entities.spawning.all-chunks-are-slime-chunks" type="boolean" default="false">
+      Make all chunks valid for slime spawning.
+    </ParamField>
+
+    <ParamField path="entities.spawning.iron-golems-can-spawn-in-air" type="boolean" default="false">
+      Allow iron golems to spawn without a full solid block beneath them.
+    </ParamField>
+
+    <ParamField path="entities.spawning.count-all-mobs-for-spawning" type="boolean" default="false">
+      Count all mobs (including those from spawners) towards spawn caps.
+    </ParamField>
+
+    <ParamField path="entities.spawning.skeleton-horse-thunder-spawn-chance" type="double" default="default">
+      Chance for skeleton horses to spawn during thunderstorms. Use vanilla default if not set.
+    </ParamField>
+
+    <ParamField path="entities.spawning.monster-spawn-max-light-level" type="integer" default="default">
+      Maximum light level at which monsters can spawn. Vanilla default is 0.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Wandering Trader">
+    <ParamField path="entities.spawning.wandering-trader.spawn-minute-length" type="integer" default="1200">
+      Length of a "minute" in ticks for wandering trader spawn timing.
+    </ParamField>
+
+    <ParamField path="entities.spawning.wandering-trader.spawn-day-length" type="integer" default="24000">
+      Length of a "day" in ticks for wandering trader spawn timing.
+    </ParamField>
+
+    <ParamField path="entities.spawning.wandering-trader.spawn-chance-min" type="integer" default="25">
+      Minimum spawn chance percentage for wandering traders.
+    </ParamField>
+
+    <ParamField path="entities.spawning.wandering-trader.spawn-chance-max" type="integer" default="75">
+      Maximum spawn chance percentage for wandering traders.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Alt Item Despawn Rate">
+    <ParamField path="entities.spawning.alt-item-despawn-rate.enabled" type="boolean" default="false">
+      Enable custom despawn rates for specific items.
+    </ParamField>
+
+    <ParamField path="entities.spawning.alt-item-despawn-rate.items" type="map" default="cobblestone: 300">
+      Map of items to their despawn time in ticks.
+      
+      ```yaml
+      alt-item-despawn-rate:
+        enabled: true
+        items:
+          minecraft:cobblestone: 300
+          minecraft:dirt: 300
+          minecraft:gravel: 300
+      ```
+      <Tip>Useful for reducing lag from common items like cobblestone!</Tip>
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Behavior
+
+<AccordionGroup>
+  <Accordion title="Mob AI & Movement">
+    <ParamField path="entities.behavior.baby-zombie-movement-modifier" type="double" default="0.5">
+      Speed modifier for baby zombies (0.5 = 50% faster than adults).
+    </ParamField>
+
+    <ParamField path="entities.behavior.spawner-nerfed-mobs-should-jump" type="boolean" default="false">
+      Allow mobs from spawners to jump when nerfed.
+    </ParamField>
+
+    <ParamField path="entities.behavior.zombies-target-turtle-eggs" type="boolean" default="true">
+      Whether zombies should pathfind to and trample turtle eggs.
+    </ParamField>
+
+    <ParamField path="entities.behavior.piglins-guard-chests" type="boolean" default="true">
+      Whether piglins become angry when players open chests.
+    </ParamField>
+
+    <ParamField path="entities.behavior.allow-spider-world-border-climbing" type="boolean" default="true">
+      Allow spiders to climb the world border.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Ender Dragon">
+    <ParamField path="entities.behavior.should-remove-dragon" type="boolean" default="false">
+      Remove the ender dragon after it's been defeated.
+    </ParamField>
+
+    <ParamField path="entities.behavior.ender-dragons-death-always-places-dragon-egg" type="boolean" default="false">
+      Always place a dragon egg when the ender dragon dies (even on respawns).
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Phantoms">
+    <ParamField path="entities.behavior.phantoms-do-not-spawn-on-creative-players" type="boolean" default="true">
+      Prevent phantoms from spawning for creative mode players.
+    </ParamField>
+
+    <ParamField path="entities.behavior.phantoms-only-attack-insomniacs" type="boolean" default="true">
+      Phantoms only attack players who haven't slept.
+    </ParamField>
+
+    <ParamField path="entities.behavior.player-insomnia-start-ticks" type="integer" default="72000">
+      Ticks before phantoms can start spawning for a player (72000 = 3 days).
+    </ParamField>
+
+    <ParamField path="entities.behavior.phantoms-spawn-attempt-min-seconds" type="integer" default="60">
+      Minimum seconds between phantom spawn attempts.
+    </ParamField>
+
+    <ParamField path="entities.behavior.phantoms-spawn-attempt-max-seconds" type="integer" default="119">
+      Maximum seconds between phantom spawn attempts.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Pillager Patrols">
+    <ParamField path="entities.behavior.pillager-patrols.disable" type="boolean" default="false">
+      Completely disable pillager patrols.
+    </ParamField>
+
+    <ParamField path="entities.behavior.pillager-patrols.spawn-chance" type="double" default="0.2">
+      Chance (0.0-1.0) for patrols to spawn.
+    </ParamField>
+
+    <ParamField path="entities.behavior.pillager-patrols.start.day" type="integer" default="5">
+      Day number when patrols can start spawning.
+    </ParamField>
+
+    <ParamField path="entities.behavior.pillager-patrols.spawn-delay.ticks" type="integer" default="12000">
+      Ticks between patrol spawn attempts.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Villagers & Trading">
+    <ParamField path="entities.behavior.zombie-villager-infection-chance" type="double" default="default">
+      Chance for villagers to become zombie villagers when killed by zombies. -1 uses vanilla behavior.
+    </ParamField>
+
+    <ParamField path="entities.behavior.mobs-can-always-pick-up-loot.zombies" type="boolean" default="false">
+      Allow all zombies to pick up loot (not just those that spawn with the ability).
+    </ParamField>
+
+    <ParamField path="entities.behavior.mobs-can-always-pick-up-loot.skeletons" type="boolean" default="false">
+      Allow all skeletons to pick up loot.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Player Mechanics">
+    <ParamField path="entities.behavior.disable-player-crits" type="boolean" default="false">
+      Disable critical hits for players.
+    </ParamField>
+
+    <ParamField path="entities.behavior.nerf-pigmen-from-nether-portals" type="boolean" default="false">
+      Prevent zombie pigmen from spawning through nether portals from dropping items.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Experience & Items">
+    <ParamField path="entities.behavior.experience-merge-max-value" type="integer" default="-1">
+      Maximum value for merged experience orbs. -1 disables limit.
+    </ParamField>
+
+    <ParamField path="entities.behavior.only-merge-items-horizontally" type="boolean" default="false">
+      Prevent merging items that are not on the same y level, preventing visual artifacts.
+      
+      <Note>Useful for preventing items from appearing to merge through floors.</Note>
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Armor Stands & Markers
+
+<Accordion title="Entity Ticking">
+  <ParamField path="entities.armor-stands.tick" type="boolean" default="true">
+    Whether armor stands should tick. Disabling improves performance but breaks some functionality.
+  </ParamField>
+
+  <ParamField path="entities.armor-stands.do-collision-entity-lookups" type="boolean" default="true">
+    Whether armor stands should perform collision lookups.
+  </ParamField>
+
+  <ParamField path="entities.markers.tick" type="boolean" default="true">
+    Whether marker entities should tick.
+  </ParamField>
+</Accordion>
+
+## Anticheat
+
+### Anti-Xray
+
+<Accordion title="Anti-Xray Configuration">
+  <ParamField path="anticheat.anti-xray.enabled" type="boolean" default="false">
+    Enable Paper's anti-xray system.
+    
+    <Warning>This adds CPU overhead. Test performance on your server!</Warning>
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.engine-mode" type="string" default="hide">
+    Anti-xray engine mode:
+    - `hide`: Hide ores by replacing them with stone
+    - `obfuscate`: Mix real and fake ores (more CPU intensive but more effective)
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.max-block-height" type="integer" default="64">
+    Maximum Y level where anti-xray is active.
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.update-radius" type="integer" default="2">
+    Radius to update when blocks are broken (engine mode 2 only).
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.lava-obscures" type="boolean" default="false">
+    Whether lava should obscure blocks like stone does.
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.use-permission" type="boolean" default="false">
+    Require `paper.antixray.bypass` permission to bypass anti-xray.
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.hidden-blocks" type="list" default="[ores, chests, etc.]">
+    List of blocks to hide or obfuscate.
+    
+    ```yaml
+    hidden-blocks:
+      - minecraft:copper_ore
+      - minecraft:deepslate_copper_ore
+      - minecraft:gold_ore
+      - minecraft:iron_ore
+      - minecraft:diamond_ore
+      - minecraft:emerald_ore
+      - minecraft:chest
+      - minecraft:ender_chest
+    ```
+  </ParamField>
+
+  <ParamField path="anticheat.anti-xray.replacement-blocks" type="list" default="[stone, oak_planks, deepslate]">
+    Blocks used to replace hidden blocks (engine mode 1) or fake ores (engine mode 2).
+  </ParamField>
+</Accordion>
+
+## Environment
+
+<AccordionGroup>
+  <Accordion title="Weather & Natural Events">
+    <ParamField path="environment.disable-thunder" type="boolean" default="false">
+      Disable thunder and lightning in this world.
+    </ParamField>
+
+    <ParamField path="environment.disable-ice-and-snow" type="boolean" default="false">
+      Prevent ice and snow from forming.
+    </ParamField>
+
+    <ParamField path="environment.fire-tick-delay" type="integer" default="30">
+      Ticks between fire spread attempts. Higher values slow fire spread.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Explosions">
+    <ParamField path="environment.optimize-explosions" type="boolean" default="false">
+      Use optimized explosion algorithm (faster but may change behavior slightly).
+    </ParamField>
+
+    <ParamField path="environment.disable-explosion-knockback" type="boolean" default="false">
+      Disable knockback from explosions.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Portals">
+    <ParamField path="environment.portal-search-radius" type="integer" default="128">
+      Radius to search for existing nether portals.
+    </ParamField>
+
+    <ParamField path="environment.portal-create-radius" type="integer" default="16">
+      Radius within which to create a new nether portal.
+    </ParamField>
+
+    <ParamField path="environment.portal-search-vanilla-dimension-scaling" type="boolean" default="true">
+      Use vanilla dimension scaling when searching for portals (1:8 for nether).
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Treasure Maps">
+    <ParamField path="environment.treasure-maps.enabled" type="boolean" default="true">
+      Enable treasure map generation.
+    </ParamField>
+
+    <ParamField path="environment.treasure-maps.find-already-discovered-villager" type="boolean" default="false">
+      Allow villager trades to give maps to already-discovered structures.
+    </ParamField>
+
+    <ParamField path="environment.treasure-maps.find-already-discovered-loot-table" type="boolean" default="default">
+      Allow loot table maps to point to already-discovered structures.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+## Chunks
+
+<Accordion title="Chunk Management">
+  <ParamField path="chunks.auto-save-interval" type="integer" default="default">
+    Ticks between automatic chunk saves. -1 or default uses bukkit.yml value.
+  </ParamField>
+
+  <ParamField path="chunks.max-auto-save-chunks-per-tick" type="integer" default="24">
+    Maximum chunks to save per tick during auto-save.
+  </ParamField>
+
+  <ParamField path="chunks.delay-chunk-unloads-by" type="string" default="10s">
+    Delay before unloading chunks (supports time units: s, m, h, d).
+    
+    <Tip>Keeping chunks loaded longer reduces repeated loading for players moving back and forth.</Tip>
+  </ParamField>
+
+  <ParamField path="chunks.prevent-moving-into-unloaded-chunks" type="boolean" default="false">
+    Prevent players from moving into unloaded chunks.
+  </ParamField>
+
+  <ParamField path="chunks.entity-per-chunk-save-limit" type="map" default="see source">
+    Limit entities saved per chunk by type. Prevents lag from entity overflow.
+    
+    ```yaml
+    entity-per-chunk-save-limit:
+      experience_orb: 16
+      snowball: 16
+      ender_pearl: 16
+      arrow: 16
+    ```
+  </ParamField>
+</Accordion>
+
+## Performance Options
+
+<AccordionGroup>
+  <Accordion title="Hopper Optimization">
+    <ParamField path="hopper.cooldown-when-full" type="boolean" default="true">
+      Add cooldown to hoppers when the container is full, reducing checks.
+    </ParamField>
+
+    <ParamField path="hopper.disable-move-event" type="boolean" default="false">
+      Disable InventoryMoveItemEvent for hoppers (breaks plugins that use it).
+      
+      <Warning>Only enable this if you know what you're doing!</Warning>
+    </ParamField>
+
+    <ParamField path="hopper.ignore-occluding-blocks" type="boolean" default="false">
+      Skip checks for blocks above hoppers.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Tick Rates">
+    <ParamField path="tick-rates.grass-spread" type="integer" default="1">
+      Ticks between grass spread attempts. Higher = slower spread but better performance.
+    </ParamField>
+
+    <ParamField path="tick-rates.container-update" type="integer" default="1">
+      Ticks between container updates.
+    </ParamField>
+
+    <ParamField path="tick-rates.mob-spawner" type="integer" default="1">
+      Ticks between mob spawner attempts.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Redstone">
+    <ParamField path="misc.redstone-implementation" type="string" default="vanilla">
+      Redstone implementation to use:
+      - `vanilla`: Standard Minecraft redstone
+      - `eigencraft`: Eigencraft redstone implementation
+      - `alternate_current`: Modern alternate current redstone
+      
+      <Note>Changing this affects redstone behavior and contraption functionality!</Note>
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+## Example Configuration
+
+```yaml
+entities:
+  spawning:
+    spawn-limits:
+      monster: 70
+      creature: 10
+    per-player-mob-spawns: true
+    alt-item-despawn-rate:
+      enabled: true
+      items:
+        minecraft:cobblestone: 300
+
+anticheat:
+  anti-xray:
+    enabled: true
+    engine-mode: hide
+    max-block-height: 64
+
+chunks:
+  auto-save-interval: -1
+  delay-chunk-unloads-by: 10s
+
+hopper:
+  cooldown-when-full: true
+  disable-move-event: false
+```
+
+## Per-World Overrides
+
+To create world-specific settings, the server automatically generates `config/paper-world.yml` with sections for each world:
+
+```yaml
+world_list:
+  world:  # Overworld
+    entities:
+      spawning:
+        spawn-limits:
+          monster: 50
+  world_nether:  # Nether
+    anticheat:
+      anti-xray:
+        enabled: false
+```
+
+<CardGroup cols={2}>
+  <Card title="Global Configuration" icon="globe" href="/administration/paper-configuration">
+    Server-wide settings
+  </Card>
+  <Card title="Performance Tuning" icon="gauge-high" href="/administration/performance-tuning">
+    Optimize these settings for performance
+  </Card>
+</CardGroup>

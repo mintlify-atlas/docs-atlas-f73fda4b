@@ -1,0 +1,317 @@
+---
+title: Pull Request Guidelines
+description: PR process, policy, and best practices for Paper contributions
+---
+
+This guide covers Paper's pull request process, policies, and best practices to help your contributions get merged smoothly.
+
+## PR Policy
+
+Paper accepts changes that make sense and can be justified. When submitting a PR, consider:
+
+- **Justification**: Be able to explain why the change is needed
+- **Maintenance costs**: Changes affect everyone running Paper, not just your server
+- **Obfuscation helpers**: Use them to reduce future maintenance burden
+- **Formatting**: Follow the guidelines in the [formatting guide](/contributing/formatting)
+
+<Note>
+  Paper will fix minor formatting issues, but following the guidelines from the start speeds up the review process.
+</Note>
+
+## Target Branch and Versions
+
+### Main Branch (Latest Minecraft)
+
+<Info>
+  Most PRs should target the `main` branch, where active development for the latest Minecraft release happens.
+</Info>
+
+If a new Minecraft release is imminent, consider waiting until it's released and merged to avoid rebasing your PR. The `main` branch is typically frozen during this time.
+
+<Note>
+  Ask in the [Paper Discord](https://discord.gg/papermc) if you're unsure about timing.
+</Note>
+
+### Older Minecraft Versions
+
+<Warning>
+  Paper is unlikely to accept PRs for versions not marked as supported at [https://fill-ui.papermc.io/projects/paper](https://fill-ui.papermc.io/projects/paper).
+</Warning>
+
+### Snapshot and Pre-Release Versions
+
+Only target snapshot/pre-release branches for:
+
+- Features specific to that version (e.g., new blocks/mobs in upcoming releases)
+- Bugs that only exist in the dev branch
+
+<Warning>
+  **Do not submit PRs for:**
+  - Version updates (e.g., 25w42a → 25w43a)
+  - Changes while there are unapplied source patches
+  - Feature patches during early development (wait until pre-release phase)
+</Warning>
+
+**Before working on snapshot branches**: Coordinate with the dev team in Discord or open an issue to ensure Paper wants changes in that area.
+
+## PR Submission Process
+
+<Steps>
+  <Step title="Prepare Your Changes">
+    1. Make your changes following the [patching guide](/contributing/patching)
+    2. Ensure code follows the [formatting guidelines](/contributing/formatting)
+    3. Test your changes thoroughly
+  </Step>
+
+  <Step title="Commit Your Patches">
+    After rebuilding patches:
+
+    ```bash
+    git add .
+    git commit -m "Add/Fix/Update: Brief description"
+    ```
+  </Step>
+
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin your-branch-name
+    ```
+  </Step>
+
+  <Step title="Create the Pull Request">
+    1. Go to your fork on GitHub
+    2. Click "Compare & pull request"
+    3. Select the appropriate base branch (usually `main`)
+    4. Fill out the PR template with:
+       - Clear description of changes
+       - Justification for the change
+       - Any relevant issue numbers
+  </Step>
+</Steps>
+
+## Writing Good PR Descriptions
+
+Your PR description should clearly communicate:
+
+### Summary
+
+- What the PR changes
+- Why the change is necessary
+- What problem it solves
+
+### Technical Details
+
+For complex or technical changes, explain:
+
+- Implementation approach
+- Design decisions
+- Trade-offs considered
+- Performance implications
+
+<Note>
+  If your patch is technical or complex, Paper may ask you to add notes to the patch header. These notes help maintain the patch long-term, especially across major version changes.
+</Note>
+
+## CI Builds
+
+Paper automatically builds all PRs to check for compilation errors.
+
+### Skipping CI
+
+If your commit doesn't need a build (e.g., changes to `README.md`, `CONTRIBUTING.md`, or `LICENSE.md`), add `[ci skip]` to the start of your commit subject:
+
+```bash
+git commit -m "[ci skip] Update README.md"
+```
+
+## Review Process
+
+### What to Expect
+
+1. **Initial Review**: A Paper team member will review your PR
+2. **Feedback**: You may receive requests for changes or clarification
+3. **Modifications**: Paper may directly modify your PR for minor fixes or rebases
+4. **Approval**: Once approved, your PR will be merged
+
+<Info>
+  This is why using a personal fork (not an organization) is important—it allows Paper to make direct modifications to speed up the process.
+</Info>
+
+### Responding to Feedback
+
+When changes are requested:
+
+1. Make the requested changes
+2. Run `./gradlew rebuildPatches`
+3. Commit the changes:
+   ```bash
+   git add .
+   git commit -m "Address review feedback"
+   git push
+   ```
+
+<Note>
+  No need to force push when addressing feedback—just push normally. Force push is only needed when rebasing.
+</Note>
+
+## Testing Your Changes
+
+### Using the Test Plugin
+
+Paper includes a `test-plugin` module for testing API changes:
+
+<Steps>
+  <Step title="Enable Test Plugin">
+    Enable it in `test-plugin.settings.gradle.kts` (generated after running Gradle once).
+  </Step>
+
+  <Step title="Edit the Test Plugin">
+    Add your test code to the test plugin module.
+  </Step>
+
+  <Step title="Run Development Server">
+    ```bash
+    ./gradlew runDev
+    ```
+  </Step>
+</Steps>
+
+### Publishing to Maven Local
+
+To test with external plugins:
+
+<Steps>
+  <Step title="Publish to Local Repository">
+    ```bash
+    ./gradlew publishToMavenLocal
+    ```
+  </Step>
+
+  <Step title="Configure Your Plugin (Gradle)">
+    Add `mavenLocal()` as a repository in your `build.gradle`:
+
+    ```groovy
+    repositories {
+        mavenLocal() // Add this above Paper's repository
+        maven { url "https://repo.papermc.io/repository/maven-public/" }
+    }
+    ```
+
+    <Warning>
+      Remove `mavenLocal()` when done testing. See the [Gradle docs](https://docs.gradle.org/current/userguide/declaring_repositories.html#sec:case-for-maven-local) for why.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Your Plugin (Maven)">
+    Maven automatically checks your local repository first, so no configuration changes are needed.
+
+    <Info>
+      You may want to remove the jar from your local Maven repository after testing.
+    </Info>
+  </Step>
+</Steps>
+
+## Configuration Changes
+
+If your patch requires configurable values:
+
+### Global Configuration
+
+Use `GlobalConfiguration` for values that must remain the same across all worlds:
+
+```java
+public class GlobalConfiguration {
+    public class Misc extends ConfigurationPart {
+        public int maxNumOfPlayers = 20; // New setting with default value
+    }
+}
+```
+
+**Accessing the value**:
+
+```java
+int maxPlayers = io.papermc.paper.configuration.GlobalConfiguration.get().misc.maxNumOfPlayers;
+```
+
+### World-Specific Configuration
+
+Use `WorldConfiguration` for values that can differ between worlds (preferred when possible):
+
+```java
+public class WorldConfiguration {
+    public class Misc extends ConfigurationPart {
+        public int maxNumOfPlayers = 20;
+    }
+}
+```
+
+**Accessing the value** (requires a `Level` instance):
+
+```java
+int maxPlayers = level.paperConfig().misc.maxNumOfPlayers;
+```
+
+<Info>
+  - Field type determines the setting type
+  - Default value is the initial field value  
+  - Setting name defaults to snake-case of the field name
+  - Use `@Setting` annotation to override the default name
+</Info>
+
+## Obfuscation Helpers
+
+Obfuscation helpers improve code readability and maintainability for unmapped variables or poorly-named parameters.
+
+**Example for local variables**:
+
+```java
+double d0 = entity.getX(); final double fromX = d0; // Paper - OBFHELPER
+// ...
+this.someMethod(fromX); // Paper
+```
+
+<Note>
+  Obfuscation helpers should be easy for the JVM to inline. The goal is always to improve readability and maintainability.
+</Note>
+
+## Common Issues
+
+### Patch Conflicts
+
+If your PR conflicts with recent changes:
+
+1. Follow the [rebasing guide](/contributing/patching#rebasing-your-pr)
+2. Resolve conflicts
+3. Test your changes still work
+4. Force push to update the PR
+
+### Build Failures
+
+If CI builds fail:
+
+1. Check the build logs for errors
+2. Fix compilation issues locally
+3. Run `./gradlew rebuildPatches`
+4. Push the fixes
+
+### Review Delays
+
+If your PR hasn't been reviewed:
+
+- Be patient—Paper maintainers are volunteers
+- Ensure your PR is complete and follows guidelines
+- Don't bump the PR repeatedly
+- Consider asking in Discord if it's been several weeks
+
+## Best Practices
+
+- **One feature per PR**: Keep PRs focused on a single change
+- **Descriptive commits**: Write clear commit messages explaining the "why"
+- **Test thoroughly**: Ensure your changes work in various scenarios
+- **Follow guidelines**: Adhere to formatting and contribution guidelines
+- **Be responsive**: Address review feedback promptly
+- **Ask questions**: Use Discord or GitHub issues if you're unsure
+
+<Info>
+  Remember: Paper maintainers want to help your PR get merged. Following these guidelines makes the process smoother for everyone.
+</Info>

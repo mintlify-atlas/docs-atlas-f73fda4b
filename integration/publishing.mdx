@@ -1,0 +1,183 @@
+---
+title: Publishing to Maven Local
+description: Test local Paper API changes in your plugins
+---
+
+When contributing to Paper or testing unreleased API changes, you need to publish the Paper API to your local Maven repository to use it in your plugins.
+
+## Why Publish Locally?
+
+Publishing to Maven Local is useful when you:
+
+- Are developing a Paper API feature or fix
+- Want to test API changes before they're released
+- Need to verify your plugin works with upcoming Paper versions
+- Are contributing to the Paper project
+
+## Publishing Paper to Maven Local
+
+<Steps>
+  <Step title="Navigate to Paper source">
+    Clone the Paper repository and navigate to the root directory:
+    
+    ```bash
+    cd /path/to/Paper
+    ```
+  </Step>
+
+  <Step title="Apply patches">
+    Apply the Paper patches to prepare the source:
+    
+    ```bash
+    ./gradlew applyPatches
+    ```
+    
+    This applies all Paper modifications to the Minecraft source files.
+  </Step>
+
+  <Step title="Publish to Maven Local">
+    Build and install Paper to your local Maven repository:
+    
+    ```bash
+    ./gradlew publishToMavenLocal
+    ```
+    
+    This command:
+    - Compiles the Paper API and Server
+    - Installs them to `~/.m2/repository/`
+    - Makes them available to all local projects
+  </Step>
+</Steps>
+
+## Using the Local Paper API
+
+After publishing, configure your plugin to use the local Maven repository.
+
+### Gradle Configuration
+
+Add `mavenLocal()` to your `build.gradle.kts`:
+
+```kotlin build.gradle.kts
+repositories {
+    mavenLocal() // Add this FIRST
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+```
+
+<Note>
+Gradle checks repositories in declaration order. Place `mavenLocal()` **before** the Paper repository to ensure your local build is used instead of the published version.
+</Note>
+
+### Maven Configuration
+
+Maven automatically checks the local repository (`~/.m2/repository/`) before remote repositories, so no configuration changes are needed. Just ensure your dependency version matches the locally published version:
+
+```xml pom.xml
+<dependency>
+    <groupId>io.papermc.paper</groupId>
+    <artifactId>paper-api</artifactId>
+    <version>1.21.11-R0.1-SNAPSHOT</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+## Important Considerations
+
+<Note>
+**Remove `mavenLocal()` when finished testing.** 
+
+Using Maven Local in production builds can cause issues:
+- Builds become non-reproducible on other machines
+- CI/CD pipelines may fail
+- Team members may get different versions
+
+See the [Gradle documentation](https://docs.gradle.org/current/userguide/declaring_repositories.html#sec:case-for-maven-local) for more details.
+</Note>
+
+## Cleaning Up
+
+To remove the locally published Paper API:
+
+### Linux/macOS
+
+```bash
+rm -rf ~/.m2/repository/io/papermc/paper/
+```
+
+### Windows
+
+```powershell
+Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\io\papermc\paper\
+```
+
+After cleaning up, your build tools will fetch Paper from the official repository again.
+
+## Development Workflow
+
+Here's a typical workflow when developing with local Paper changes:
+
+<Steps>
+  <Step title="Make changes to Paper">
+    Modify the Paper API or implementation in the Paper source directory.
+  </Step>
+
+  <Step title="Rebuild and publish">
+    ```bash
+    ./gradlew applyPatches publishToMavenLocal
+    ```
+  </Step>
+
+  <Step title="Test in your plugin">
+    Rebuild your plugin to pick up the changes:
+    
+    ```bash
+    ./gradlew clean build
+    ```
+  </Step>
+
+  <Step title="Iterate">
+    Repeat steps 1-3 until your changes work correctly.
+  </Step>
+
+  <Step title="Clean up">
+    Remove `mavenLocal()` from your plugin's build configuration before committing.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Changes not appearing
+
+If your plugin doesn't pick up local changes:
+
+1. Verify the version numbers match exactly
+2. Run `./gradlew clean build` in your plugin
+3. Check that `mavenLocal()` appears **before** other repositories
+4. Ensure you ran `publishToMavenLocal` after making changes
+
+### Build cache issues
+
+Gradle may cache dependencies. Force a refresh:
+
+```bash
+./gradlew build --refresh-dependencies
+```
+
+### WSL2 Performance
+
+If building on Windows is slow, use WSL2 for significantly better performance. See the [Paper CONTRIBUTING.md](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md#patching-and-building-is-really-slow-what-can-i-do) for setup instructions.
+
+## Next Steps
+
+Once you've verified your changes work:
+
+1. Submit a pull request to the [Paper repository](https://github.com/PaperMC/Paper)
+2. Follow the [contribution guidelines](https://github.com/PaperMC/Paper/blob/main/CONTRIBUTING.md)
+3. Wait for the changes to be merged and released
+4. Update your plugin to use the official release

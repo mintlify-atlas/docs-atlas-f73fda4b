@@ -1,0 +1,419 @@
+---
+title: 'Adventure API'
+description: 'Modern text components and chat API with Adventure'
+---
+
+# Adventure API
+
+Paper fully integrates the [Adventure](https://docs.advntr.dev/) API for modern, feature-rich text components and chat functionality.
+
+## What is Adventure?
+
+Adventure is a modern replacement for Minecraft's legacy chat system, providing:
+
+- Rich text components with formatting
+- Click and hover events
+- Translatable text
+- NBT and selector components
+- Title and action bar messages
+- Sound playback
+- Book creation
+
+## Text Components
+
+### Creating Components
+
+```java
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+
+// Simple text
+Component simple = Component.text("Hello, World!");
+
+// Colored text
+Component colored = Component.text("Colored text", NamedTextColor.RED);
+
+// Styled text
+Component styled = Component.text("Bold text")
+    .color(NamedTextColor.GOLD)
+    .decorate(TextDecoration.BOLD);
+
+// Combined components
+Component combined = Component.text()
+    .append(Component.text("[Server] ", NamedTextColor.GREEN))
+    .append(Component.text("Welcome!", NamedTextColor.WHITE))
+    .build();
+```
+
+### Formatting
+
+```java
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
+
+// Custom colors
+Component customColor = Component.text("Custom color")
+    .color(TextColor.color(0x00FF00));
+
+// Multiple decorations
+Component decorated = Component.text("Fancy text")
+    .decorate(TextDecoration.BOLD)
+    .decorate(TextDecoration.ITALIC)
+    .decorate(TextDecoration.UNDERLINED);
+
+// Remove decoration
+Component notItalic = Component.text("Not italic")
+    .decoration(TextDecoration.ITALIC, false);
+
+// Style
+Style style = Style.style()
+    .color(NamedTextColor.AQUA)
+    .decorate(TextDecoration.BOLD)
+    .build();
+Component withStyle = Component.text("Styled", style);
+```
+
+### Click Events
+
+```java
+import net.kyori.adventure.text.event.ClickEvent;
+
+// Open URL
+Component url = Component.text("Click here")
+    .clickEvent(ClickEvent.openUrl("https://papermc.io"));
+
+// Run command
+Component command = Component.text("Heal me")
+    .clickEvent(ClickEvent.runCommand("/heal"));
+
+// Suggest command
+Component suggest = Component.text("Message player")
+    .clickEvent(ClickEvent.suggestCommand("/msg PlayerName "));
+
+// Copy to clipboard
+Component copy = Component.text("Copy UUID")
+    .clickEvent(ClickEvent.copyToClipboard(player.getUniqueId().toString()));
+```
+
+### Hover Events
+
+```java
+import net.kyori.adventure.text.event.HoverEvent;
+
+// Show text
+Component hover = Component.text("Hover me")
+    .hoverEvent(HoverEvent.showText(
+        Component.text("This is a tooltip!")
+    ));
+
+// Show item
+ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
+Component itemHover = Component.text("[Item]")
+    .hoverEvent(item.asHoverEvent());
+
+// Show entity
+Component entityHover = Component.text("[Entity]")
+    .hoverEvent(HoverEvent.showEntity(
+        HoverEvent.ShowEntity.showEntity(
+            Key.key("minecraft:zombie"),
+            entity.getUniqueId(),
+            Component.text("Bob the Zombie")
+        )
+    ));
+```
+
+## MiniMessage
+
+MiniMessage is a simple, intuitive format for creating rich components:
+
+```java
+import net.kyori.adventure.text.minimessage.MiniMessage;
+
+MiniMessage mm = MiniMessage.miniMessage();
+
+// Colors and formatting
+Component text = mm.deserialize("<red>Red text</red>");
+Component bold = mm.deserialize("<bold>Bold text</bold>");
+Component combined = mm.deserialize("<yellow><bold>Bold yellow!</bold></yellow>");
+
+// Click events
+Component click = mm.deserialize(
+    "<click:open_url:'https://papermc.io'>Visit Paper</click>"
+);
+
+// Hover events
+Component hover = mm.deserialize(
+    "<hover:show_text:'Tooltip text'>Hover me</hover>"
+);
+
+// Gradients
+Component gradient = mm.deserialize(
+    "<gradient:red:blue>Gradient text</gradient>"
+);
+
+// Rainbow
+Component rainbow = mm.deserialize(
+    "<rainbow>Rainbow text!</rainbow>"
+);
+```
+
+### MiniMessage Tags
+
+- `<red>`, `<blue>`, `<green>`, etc. - Named colors
+- `<#00FF00>` - Hex colors
+- `<bold>`, `<italic>`, `<underlined>`, `<strikethrough>` - Formatting
+- `<click:ACTION:VALUE>` - Click events
+- `<hover:show_text:'text'>` - Hover events
+- `<gradient:color1:color2>` - Color gradients
+- `<rainbow>` - Rainbow effect
+- `<reset>` - Reset formatting
+
+## Audiences
+
+Audience is a unified interface for sending messages:
+
+```java
+import net.kyori.adventure.audience.Audience;
+
+// Player is an Audience
+Audience audience = player;
+
+// Send message
+audience.sendMessage(Component.text("Hello!"));
+
+// Send action bar
+audience.sendActionBar(Component.text("Action bar message"));
+
+// Send title
+audience.showTitle(Title.title(
+    Component.text("Big Title"),
+    Component.text("Subtitle")
+));
+
+// Play sound
+audience.playSound(Sound.sound(
+    Key.key("minecraft:entity.experience_orb.pickup"),
+    Sound.Source.PLAYER,
+    1.0f,
+    1.0f
+));
+```
+
+### Multiple Audiences
+
+```java
+import net.kyori.adventure.audience.Audience;
+
+// Broadcast to all players
+Audience.audience(Bukkit.getOnlinePlayers())
+    .sendMessage(Component.text("Server announcement!"));
+
+// Send to specific players
+Audience.audience(player1, player2, player3)
+    .sendMessage(Component.text("Team message"));
+
+// Forward messages
+Audience forward = Audience.audience(player, Bukkit.getConsoleSender());
+forward.sendMessage(Component.text("Sent to player and console"));
+```
+
+## Titles
+
+```java
+import net.kyori.adventure.title.Title;
+import java.time.Duration;
+
+// Basic title
+player.showTitle(Title.title(
+    Component.text("Title"),
+    Component.text("Subtitle")
+));
+
+// With timing
+Title.Times times = Title.Times.times(
+    Duration.ofMillis(500),  // Fade in
+    Duration.ofSeconds(3),   // Stay
+    Duration.ofMillis(1000)  // Fade out
+);
+
+player.showTitle(Title.title(
+    Component.text("Title"),
+    Component.text("Subtitle"),
+    times
+));
+
+// Clear title
+player.clearTitle();
+
+// Reset times
+player.resetTitle();
+```
+
+## Boss Bars
+
+```java
+import net.kyori.adventure.bossbar.BossBar;
+
+// Create boss bar
+BossBar bossBar = BossBar.bossBar(
+    Component.text("Boss Fight"),
+    1.0f,  // Progress (0.0 to 1.0)
+    BossBar.Color.RED,
+    BossBar.Overlay.PROGRESS
+);
+
+// Show to player
+player.showBossBar(bossBar);
+
+// Update progress
+bossBar.progress(0.5f);
+
+// Update name
+bossBar.name(Component.text("Boss: 50% HP"));
+
+// Hide
+player.hideBossBar(bossBar);
+```
+
+## Sounds
+
+```java
+import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.key.Key;
+
+// Play sound
+player.playSound(Sound.sound(
+    Key.key("minecraft:entity.player.levelup"),
+    Sound.Source.PLAYER,
+    1.0f,  // Volume
+    1.0f   // Pitch
+));
+
+// Play at location
+player.playSound(Sound.sound(
+    Key.key("minecraft:block.note_block.harp"),
+    Sound.Source.BLOCK,
+    1.0f,
+    1.0f
+), location.x(), location.y(), location.z());
+
+// Stop sound
+player.stopSound(SoundStop.named(Key.key("minecraft:music.game")));
+```
+
+## Books
+
+```java
+import net.kyori.adventure.inventory.Book;
+
+// Create book
+Book book = Book.book(
+    Component.text("Book Title"),
+    Component.text("Author Name"),
+    Component.text("Page 1 content"),
+    Component.text("Page 2 content")
+);
+
+// Open book
+player.openBook(book);
+```
+
+## Translation
+
+```java
+import net.kyori.adventure.text.TranslatableComponent;
+
+// Translatable text (uses client's language)
+Component translatable = Component.translatable("multiplayer.player.joined");
+
+// With arguments
+Component withArgs = Component.translatable(
+    "death.attack.mob",
+    Component.text(player.getName()),
+    Component.text("Zombie")
+);
+
+// Fallback for unknown translations
+Component fallback = Component.translatable(
+    "custom.translation.key",
+    Component.text("Fallback text")
+);
+```
+
+## NBT Components
+
+```java
+// Entity NBT
+Component entityNbt = Component.nbt(
+    "Health",
+    true,  // Interpret NBT
+    Component.entityNBT("@s")
+);
+
+// Block NBT
+Component blockNbt = Component.nbt(
+    "Items",
+    true,
+    Component.blockNBT("~ ~ ~")
+);
+
+// Storage NBT
+Component storageNbt = Component.nbt(
+    "data.value",
+    true,
+    Component.storageNBT(Key.key("minecraft:custom_storage"))
+);
+```
+
+## Component Serialization
+
+```java
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
+// To JSON
+String json = GsonComponentSerializer.gson().serialize(component);
+
+// From JSON
+Component fromJson = GsonComponentSerializer.gson().deserialize(json);
+
+// To plain text
+String plain = PlainTextComponentSerializer.plainText().serialize(component);
+
+// Legacy format (§ codes)
+String legacy = LegacyComponentSerializer.legacySection().serialize(component);
+Component fromLegacy = LegacyComponentSerializer.legacySection().deserialize("§aGreen §lBold");
+```
+
+## Best Practices
+
+<Tip>
+  Use MiniMessage for user-facing configuration and messages. It's easier to read and write than JSON or legacy codes.
+</Tip>
+
+<Note>
+  Components are immutable. Methods like `color()` and `append()` return new component instances.
+</Note>
+
+<Warning>
+  Avoid using legacy format (§ codes) in new code. Use Component or MiniMessage instead.
+</Warning>
+
+## Resources
+
+- **[Adventure Documentation](https://docs.advntr.dev/)** - Official Adventure docs
+- **[MiniMessage Documentation](https://docs.advntr.dev/minimessage/)** - MiniMessage format guide
+- **[Adventure Javadocs](https://jd.advntr.dev/)** - Complete API reference
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Plugin Development" href="/plugins/getting-started">
+    Use Adventure in your plugins
+  </Card>
+  <Card title="Events API" href="/api/events">
+    Handle chat events
+  </Card>
+</CardGroup>

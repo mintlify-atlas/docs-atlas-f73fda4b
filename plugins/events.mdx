@@ -1,0 +1,382 @@
+---
+title: Working with Events
+description: Learn how to listen to and handle events in Paper plugins
+---
+
+Events are the primary way plugins interact with server and player actions. Paper's event system allows you to listen for and respond to hundreds of different events.
+
+## Event Basics
+
+All events extend the `org.bukkit.event.Event` class and are called by the `PluginManager`.
+
+### The Event Class
+
+From `org.bukkit.event.Event`:
+
+```java
+public abstract class Event {
+    private final boolean isAsync;
+
+    public Event() {
+        this(false);  // Synchronous by default
+    }
+
+    public Event(boolean isAsync) {
+        this.isAsync = isAsync;
+    }
+
+    public abstract HandlerList getHandlers();
+    
+    public final boolean isAsynchronous() {
+        return this.isAsync;
+    }
+}
+```
+
+## Creating an Event Listener
+
+<Steps>
+  <Step title="Create a Listener Class">
+    Create a class that implements the `Listener` interface:
+
+    ```java
+    package com.example.myplugin;
+
+    import org.bukkit.event.Listener;
+    import org.bukkit.event.EventHandler;
+    import org.bukkit.event.player.PlayerJoinEvent;
+
+    public class MyListener implements Listener {
+
+        @EventHandler
+        public void onPlayerJoin(PlayerJoinEvent event) {
+            event.getPlayer().sendMessage("Welcome to the server!");
+        }
+    }
+    ```
+
+    The `Listener` interface is a marker interface with no methods (from `org.bukkit.event.Listener`):
+    ```java
+    public interface Listener {}
+    ```
+  </Step>
+
+  <Step title="Register the Listener">
+    Register your listener in the plugin's `onEnable()` method:
+
+    ```java
+    @Override
+    public void onEnable() {
+        getServer().getPluginManager().registerEvents(new MyListener(), this);
+    }
+    ```
+
+    <Note>
+      The second parameter is your plugin instance, which is used to track which plugin registered the listener.
+    </Note>
+  </Step>
+</Steps>
+
+## The @EventHandler Annotation
+
+The `@EventHandler` annotation marks methods as event handlers. From `org.bukkit.event.EventHandler`:
+
+```java
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface EventHandler {
+    EventPriority priority() default EventPriority.NORMAL;
+    boolean ignoreCancelled() default false;
+}
+```
+
+### Event Priority
+
+Control the order in which your event handler is called:
+
+```java
+@EventHandler(priority = EventPriority.HIGH)
+public void onPlayerJoin(PlayerJoinEvent event) {
+    // This runs with HIGH priority
+}
+```
+
+Priority order (from `org.bukkit.event.EventPriority`):
+
+1. `LOWEST` - Called first, for early modifications
+2. `LOW` - Called early
+3. `NORMAL` - Default priority
+4. `HIGH` - Called late
+5. `HIGHEST` - Called very late, final modifications
+6. `MONITOR` - Read-only, for observation (don't modify events!)
+
+<CodeGroup>
+```java LOWEST Priority
+@EventHandler(priority = EventPriority.LOWEST)
+public void onDamage(EntityDamageEvent event) {
+    // Runs first - good for canceling events early
+    if (event.getEntity() instanceof Player) {
+        event.setCancelled(true);
+    }
+}
+```
+
+```java MONITOR Priority
+@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+public void onDamageMonitor(EntityDamageEvent event) {
+    // Runs last - only for observing final outcome
+    // DO NOT modify the event here
+    logDamageEvent(event);
+}
+```
+</CodeGroup>
+
+<Warning>
+  The `MONITOR` priority should only be used for observing events, not modifying them. Changes made at this priority may not be respected by other plugins.
+</Warning>
+
+### Ignore Cancelled Events
+
+Skip cancelled events with the `ignoreCancelled` parameter:
+
+```java
+@EventHandler(ignoreCancelled = true)
+public void onBlockBreak(BlockBreakEvent event) {
+    // This won't run if the event is cancelled by another plugin
+}
+```
+
+## Common Events
+
+### Player Events
+
+Listen for player-related events:
+
+```java
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+
+public class PlayerListener implements Listener {
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        
+        // Modify join message
+        event.joinMessage(Component.text("Welcome " + player.getName()));
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        // Player is leaving
+        savePlayerData(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        // Player moved
+        // Be careful - this fires very frequently!
+        if (event.getFrom().getBlock().equals(event.getTo().getBlock())) {
+            return; // Only head movement, not position change
+        }
+    }
+}
+```
+
+### PlayerJoinEvent Example
+
+From `org.bukkit.event.player.PlayerJoinEvent`:
+
+```java
+public class PlayerJoinEvent extends PlayerEvent {
+    private Component joinMessage;
+
+    public @Nullable Component joinMessage() {
+        return this.joinMessage;
+    }
+
+    public void joinMessage(@Nullable Component joinMessage) {
+        this.joinMessage = joinMessage;
+    }
+}
+```
+
+### Block Events
+
+```java
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+
+public class BlockListener implements Listener {
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        
+        if (!player.hasPermission("myplugin.break")) {
+            event.setCancelled(true);
+            player.sendMessage("You don't have permission!");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        // Only runs if no other plugin cancelled it
+        awardPoints(event.getPlayer());
+    }
+}
+```
+
+### Entity Events
+
+```java
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+
+public class EntityListener implements Listener {
+
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            // Player took damage
+            if (isInSafeZone(player)) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event) {
+        // Entity died
+        event.getDrops().clear();  // Remove all drops
+    }
+}
+```
+
+## Cancellable Events
+
+Many events can be cancelled to prevent the action from occurring:
+
+```java
+@EventHandler
+public void onPlayerInteract(PlayerInteractEvent event) {
+    if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+        if (event.getClickedBlock().getType() == Material.CHEST) {
+            if (!event.getPlayer().hasPermission("myplugin.usechest")) {
+                event.setCancelled(true);  // Prevent opening the chest
+            }
+        }
+    }
+}
+```
+
+## Calling Events
+
+You can create and call custom events:
+
+```java
+// Create custom event
+public class MyCustomEvent extends Event {
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+    private final Player player;
+
+    public MyCustomEvent(Player player) {
+        this.player = player;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    @Override
+    public HandlerList getHandlers() {
+        return HANDLER_LIST;
+    }
+
+    public static HandlerList getHandlerList() {
+        return HANDLER_LIST;
+    }
+}
+
+// Call the event
+MyCustomEvent event = new MyCustomEvent(player);
+getServer().getPluginManager().callEvent(event);
+```
+
+Or use the convenience method from the `Event` class:
+
+```java
+MyCustomEvent event = new MyCustomEvent(player);
+boolean wasNotCancelled = event.callEvent();
+```
+
+## Asynchronous Events
+
+Some events are fired asynchronously (off the main thread):
+
+```java
+@EventHandler
+public void onAsyncChat(AsyncChatEvent event) {
+    // This runs on a separate thread!
+    // Be careful with thread safety
+    
+    if (event.isAsynchronous()) {  // Returns true
+        // Don't call Bukkit API methods that aren't thread-safe
+    }
+}
+```
+
+<Warning>
+  Asynchronous event handlers must be thread-safe. Most Bukkit API methods should not be called from async events. Use `Bukkit.getScheduler().runTask()` to schedule tasks on the main thread if needed.
+</Warning>
+
+## Best Practices
+
+1. **Use the correct priority**: 
+   - `LOWEST/LOW` for early cancellation
+   - `NORMAL` for most modifications
+   - `HIGH/HIGHEST` for final modifications
+   - `MONITOR` only for observation
+
+2. **Check event state**:
+   ```java
+   @EventHandler(ignoreCancelled = true)
+   public void onEvent(Event event) {
+       // Automatically skips if cancelled
+   }
+   ```
+
+3. **Performance considerations**:
+   ```java
+   @EventHandler
+   public void onPlayerMove(PlayerMoveEvent event) {
+       // This fires VERY frequently - keep it fast!
+       if (event.getFrom().getBlock().equals(event.getTo().getBlock())) {
+           return;  // Only head movement, ignore
+       }
+   }
+   ```
+
+4. **Unregister when done**:
+   ```java
+   HandlerList.unregisterAll(listener);
+   ```
+
+5. **Use ignoreCancelled wisely**:
+   - Set to `true` when you don't want to process cancelled events
+   - Set to `false` when you need to see all events regardless of cancellation
+
+## Event Reference
+
+Common event packages:
+- `org.bukkit.event.player.*` - Player events
+- `org.bukkit.event.block.*` - Block events
+- `org.bukkit.event.entity.*` - Entity events
+- `org.bukkit.event.inventory.*` - Inventory events
+- `org.bukkit.event.world.*` - World events
+- `org.bukkit.event.server.*` - Server events
+
+For a complete list, see the [Paper API Javadocs](https://papermc.io/javadocs/).

@@ -1,0 +1,440 @@
+---
+title: 'Entity API'
+description: 'Entity management, customization, and AI control'
+---
+
+# Entity API
+
+Paper provides comprehensive APIs for entity management, customization, and AI control.
+
+## Entity Basics
+
+### Spawning Entities
+
+```java
+import org.bukkit.entity.*;
+
+// Spawn basic entity
+Entity entity = world.spawnEntity(location, EntityType.ZOMBIE);
+
+// Spawn with type casting
+Zombie zombie = (Zombie) world.spawnEntity(location, EntityType.ZOMBIE);
+
+// Or use typed method
+Zombie zombie = world.spawn(location, Zombie.class);
+
+// Configure before spawning
+Zombie customZombie = world.spawn(location, Zombie.class, zombie -> {
+    zombie.setBaby(true);
+    zombie.setCustomName("Baby Zombie");
+    zombie.setCustomNameVisible(true);
+    zombie.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(40.0);
+    zombie.setHealth(40.0);
+});
+```
+
+### Entity Properties
+
+```java
+// Basic properties
+EntityType type = entity.getType();
+UUID uuid = entity.getUniqueId();
+Location location = entity.getLocation();
+World world = entity.getWorld();
+
+// Custom name
+entity.customName(Component.text("Custom Name"));
+entity.setCustomNameVisible(true);
+
+// Invulnerability
+entity.setInvulnerable(true);
+
+// Gravity
+entity.setGravity(false);
+
+// Silent (no sound effects)
+entity.setSilent(true);
+
+// Glowing
+entity.setGlowing(true);
+```
+
+### Entity Movement
+
+```java
+// Teleport
+entity.teleport(location);
+
+// Velocity
+Vector velocity = new Vector(0, 1, 0); // Upward
+entity.setVelocity(velocity);
+
+// Passengers
+entity.addPassenger(player);
+entity.removePassenger(player);
+List<Entity> passengers = entity.getPassengers();
+
+// Vehicle
+Entity vehicle = entity.getVehicle();
+entity.leaveVehicle();
+```
+
+## Living Entities
+
+### Health and Attributes
+
+```java
+if (entity instanceof LivingEntity living) {
+    // Health
+    double health = living.getHealth();
+    double maxHealth = living.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+    living.setHealth(20.0);
+    
+    // Attributes
+    AttributeInstance speed = living.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
+    speed.setBaseValue(0.3); // Faster
+    
+    AttributeInstance knockback = living.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE);
+    knockback.setBaseValue(1.0); // Immune to knockback
+    
+    // Air (drowning)
+    int air = living.getRemainingAir();
+    int maxAir = living.getMaximumAir();
+    living.setRemainingAir(maxAir);
+    
+    // No AI
+    living.setAI(false);
+    
+    // Remove when far
+    living.setRemoveWhenFarAway(true);
+}
+```
+
+### Potion Effects
+
+```java
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+if (entity instanceof LivingEntity living) {
+    // Add potion effect
+    PotionEffect effect = new PotionEffect(
+        PotionEffectType.SPEED,
+        200,  // Duration in ticks (10 seconds)
+        1,    // Amplifier (level 2)
+        false, // Ambient
+        true,  // Show particles
+        true   // Show icon
+    );
+    living.addPotionEffect(effect);
+    
+    // Check for effect
+    if (living.hasPotionEffect(PotionEffectType.POISON)) {
+        living.removePotionEffect(PotionEffectType.POISON);
+    }
+    
+    // Get all effects
+    Collection<PotionEffect> effects = living.getActivePotionEffects();
+    
+    // Clear all effects
+    for (PotionEffect e : effects) {
+        living.removePotionEffect(e.getType());
+    }
+}
+```
+
+### Equipment
+
+```java
+if (entity instanceof LivingEntity living) {
+    EntityEquipment equipment = living.getEquipment();
+    
+    if (equipment != null) {
+        // Set equipment
+        equipment.setHelmet(new ItemStack(Material.DIAMOND_HELMET));
+        equipment.setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));
+        equipment.setLeggings(new ItemStack(Material.DIAMOND_LEGGINGS));
+        equipment.setBoots(new ItemStack(Material.DIAMOND_BOOTS));
+        equipment.setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));
+        equipment.setItemInOffHand(new ItemStack(Material.SHIELD));
+        
+        // Drop chances (0.0 = never, 1.0 = always)
+        equipment.setHelmetDropChance(0.0f);
+        equipment.setChestplateDropChance(0.0f);
+        equipment.setLeggingsDropChance(0.0f);
+        equipment.setBootsDropChance(0.0f);
+        equipment.setItemInMainHandDropChance(0.0f);
+        equipment.setItemInOffHandDropChance(0.0f);
+    }
+}
+```
+
+## Mob AI
+
+### Paper AI API
+
+Paper provides enhanced AI control:
+
+```java
+import com.destroystokyo.paper.entity.ai.*;
+import org.bukkit.entity.Mob;
+
+if (entity instanceof Mob mob) {
+    // Disable all AI
+    mob.setAware(false);
+    
+    // Get AI goals
+    Set<Goal<?>> targetGoals = mob.getGoals(GoalType.TARGET);
+    Set<Goal<?>> normalGoals = mob.getGoals(GoalType.NORMAL);
+    
+    // Remove specific goal
+    for (Goal<?> goal : normalGoals) {
+        GoalKey<?> key = goal.getKey();
+        if (key.getNamespacedKey().getKey().contains("panic")) {
+            mob.removeGoal(key);
+        }
+    }
+    
+    // Get all goals
+    Collection<Goal<?>> allGoals = mob.getAllGoals();
+}
+```
+
+### Targeting
+
+```java
+if (entity instanceof Mob mob) {
+    // Set target
+    mob.setTarget(player);
+    
+    // Get target
+    LivingEntity target = mob.getTarget();
+    
+    // Clear target
+    mob.setTarget(null);
+}
+```
+
+## Specific Entity Types
+
+### Zombies
+
+```java
+Zombie zombie = world.spawn(location, Zombie.class);
+
+// Baby zombie
+zombie.setBaby(true);
+boolean isBaby = zombie.isBaby();
+
+// Age (for baby entities)
+zombie.setAge(-24000); // Baby for longer
+
+// Convert to drowned
+zombie.setConversionTime(100); // Ticks until conversion
+```
+
+### Creepers
+
+```java
+Creeper creeper = world.spawn(location, Creeper.class);
+
+// Charged creeper
+creeper.setPowered(true);
+
+// Explosion radius
+creeper.setExplosionRadius(5);
+
+// Max fuse ticks
+creeper.setMaxFuseTicks(30);
+
+// Ignite
+creeper.ignite();
+```
+
+### Villagers
+
+```java
+Villager villager = world.spawn(location, Villager.class);
+
+// Profession
+villager.setProfession(Villager.Profession.LIBRARIAN);
+Villager.Profession profession = villager.getProfession();
+
+// Level
+villager.setVillagerLevel(5);
+
+// Experience
+villager.setVillagerExperience(100);
+
+// Trades
+List<MerchantRecipe> recipes = villager.getRecipes();
+MerchantRecipe recipe = new MerchantRecipe(
+    new ItemStack(Material.DIAMOND),
+    1,  // Max uses
+    5,  // XP reward
+    0.2f // Price multiplier
+);
+recipe.addIngredient(new ItemStack(Material.EMERALD, 64));
+recipes.add(recipe);
+villager.setRecipes(recipes);
+```
+
+### Armor Stands
+
+```java
+ArmorStand stand = world.spawn(location, ArmorStand.class);
+
+// Visibility
+stand.setVisible(false);
+stand.setMarker(true); // Small hitbox, no collision
+
+// Arms
+stand.setArms(true);
+
+// Base plate
+stand.setBasePlate(false);
+
+// Gravity
+stand.setGravity(false);
+
+// Pose
+EulerAngle angle = new EulerAngle(Math.toRadians(45), 0, 0);
+stand.setHeadPose(angle);
+stand.setBodyPose(angle);
+stand.setLeftArmPose(angle);
+stand.setRightArmPose(angle);
+stand.setLeftLegPose(angle);
+stand.setRightLegPose(angle);
+
+// Equipment
+EntityEquipment equipment = stand.getEquipment();
+equipment.setHelmet(new ItemStack(Material.PLAYER_HEAD));
+```
+
+### Item Frames
+
+```java
+ItemFrame frame = world.spawn(location, ItemFrame.class);
+
+// Item
+frame.setItem(new ItemStack(Material.DIAMOND_SWORD));
+
+// Rotation
+frame.setRotation(Rotation.CLOCKWISE);
+
+// Fixed (cannot be removed)
+frame.setFixed(true);
+
+// Visible
+frame.setVisible(false);
+```
+
+### Minecarts
+
+```java
+Minecart minecart = world.spawn(location, Minecart.class);
+
+// Speed
+Vector velocity = new Vector(1, 0, 0);
+minecart.setVelocity(velocity);
+
+// Max speed
+minecart.setMaxSpeed(0.4);
+
+// Slow when empty
+minecart.setSlowWhenEmpty(true);
+
+// Derail
+minecart.setDerailedVelocityMod(new Vector(0.5, 0.5, 0.5));
+```
+
+## Entity Metadata
+
+Store custom data on entities:
+
+```java
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+// Get persistent data container
+PersistentDataContainer data = entity.getPersistentDataContainer();
+
+// Store data
+NamespacedKey key = new NamespacedKey(plugin, "custom_data");
+data.set(key, PersistentDataType.STRING, "value");
+
+// Retrieve data
+String value = data.get(key, PersistentDataType.STRING);
+
+// Check if has data
+if (data.has(key, PersistentDataType.STRING)) {
+    // Has data
+}
+
+// Remove data
+data.remove(key);
+```
+
+## Entity Tracking
+
+Control which players can see entities:
+
+```java
+import io.papermc.paper.entity.TeleportFlag;
+
+// Get tracking players
+Set<Player> tracking = entity.getTrackedPlayers();
+
+// Check if player can see entity
+boolean canSee = player.canSee(entity);
+
+// Hide entity from player
+player.hideEntity(plugin, entity);
+
+// Show entity to player
+player.showEntity(plugin, entity);
+```
+
+## Entity Removal
+
+```java
+// Remove entity
+entity.remove();
+
+// Check if removed
+boolean isDead = entity.isDead();
+
+// Get all entities
+Collection<Entity> entities = world.getEntities();
+
+// Get entities by type
+Collection<Zombie> zombies = world.getEntitiesByClass(Zombie.class);
+
+// Get nearby entities
+Collection<Entity> nearby = world.getNearbyEntities(location, 10, 10, 10);
+```
+
+## Best Practices
+
+<Tip>
+  Use `world.spawn(location, Class, Consumer)` to configure entities atomically before they're spawned.
+</Tip>
+
+<Warning>
+  Always check if an entity is a specific type before casting: `if (entity instanceof Zombie zombie)`
+</Warning>
+
+<Note>
+  Entities with `setAI(false)` or `setAware(false)` won't move or react to players.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Events API" href="/api/events">
+    Handle entity events
+  </Card>
+  <Card title="World API" href="/api/world">
+    World and environment control
+  </Card>
+</CardGroup>

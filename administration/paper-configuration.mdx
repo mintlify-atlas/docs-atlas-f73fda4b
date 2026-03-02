@@ -1,0 +1,370 @@
+---
+title: 'Paper Global Configuration'
+description: 'Paper server-wide configuration options in config/paper-global.yml'
+---
+
+Paper's global configuration file contains server-wide settings that affect all worlds. This file is located at `config/paper-global.yml` and provides advanced features beyond vanilla Minecraft.
+
+## Location
+
+```
+server-root/
+└── config/
+    └── paper-global.yml
+```
+
+## Configuration Reference
+
+### Chunk Loading
+
+<AccordionGroup>
+  <Accordion title="Basic Chunk Loading">
+    <ParamField path="chunk-loading-basic.player-max-chunk-send-rate" type="double" default="75.0">
+      Maximum rate in chunks per second that the server will send to any individual player. Set to -1 to disable.
+      
+      <Tip>Lower values reduce bandwidth and CPU usage for players with slow connections.</Tip>
+    </ParamField>
+
+    <ParamField path="chunk-loading-basic.player-max-chunk-load-rate" type="double" default="100.0">
+      Maximum rate at which chunks will load for any individual player. This affects chunk generation since a chunk load is issued first to test if a chunk exists. Set to -1 to disable.
+    </ParamField>
+
+    <ParamField path="chunk-loading-basic.player-max-chunk-generate-rate" type="double" default="-1.0">
+      Maximum rate at which chunks will generate for any individual player. Set to -1 to disable this limit.
+      
+      <Note>Limiting generation can prevent lag spikes when players explore new areas.</Note>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Advanced Chunk Loading">
+    <ParamField path="chunk-loading-advanced.auto-config-send-distance" type="boolean" default="true">
+      If true, the server will match the chunk send radius that clients have configured in their view distance settings if the client's setting is less than the server's send distance.
+    </ParamField>
+
+    <ParamField path="chunk-loading-advanced.player-max-concurrent-chunk-loads" type="integer" default="0">
+      Maximum amount of concurrent chunk loads per player. Set to 0 to let the server configure it automatically per player, or -1 to disable the limit.
+    </ParamField>
+
+    <ParamField path="chunk-loading-advanced.player-max-concurrent-chunk-generates" type="integer" default="0">
+      Maximum amount of concurrent chunk generations per player. Set to 0 for automatic configuration, or -1 to disable.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Messages
+
+<Accordion title="Kick Messages & Permissions">
+  <ParamField path="messages.kick.authentication-servers-down" type="Component" default="multiplayer.disconnect.authservers_down">
+    Message shown when authentication servers are unavailable.
+  </ParamField>
+
+  <ParamField path="messages.kick.connection-throttle" type="Component" default="Connection throttled! Please wait before reconnecting.">
+    Message shown when a player is connecting too frequently.
+  </ParamField>
+
+  <ParamField path="messages.kick.flying-player" type="Component" default="multiplayer.disconnect.flying">
+    Message shown when a player is kicked for flying without permission.
+  </ParamField>
+
+  <ParamField path="messages.no-permission" type="Component" default="I'm sorry, but you do not have permission to perform this command.">
+    Default message shown when a player lacks permission for a command.
+  </ParamField>
+
+  <ParamField path="messages.use-display-name-in-quit-message" type="boolean" default="false">
+    Use player display names instead of usernames in quit messages.
+  </ParamField>
+</Accordion>
+
+### Proxies
+
+<AccordionGroup>
+  <Accordion title="BungeeCord">
+    <ParamField path="proxies.bungee-cord.online-mode" type="boolean" default="true">
+      Whether BungeeCord proxy handles authentication.
+      
+      <Warning>Ensure your server is properly firewalled when using BungeeCord mode!</Warning>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Velocity">
+    <ParamField path="proxies.velocity.enabled" type="boolean" default="false">
+      Enable Velocity modern forwarding support.
+    </ParamField>
+
+    <ParamField path="proxies.velocity.online-mode" type="boolean" default="true">
+      Whether Velocity proxy handles authentication.
+    </ParamField>
+
+    <ParamField path="proxies.velocity.secret" type="string" default="">
+      The secret key from your Velocity configuration. Can also be set via the `PAPER_VELOCITY_SECRET` environment variable.
+      
+      <Warning>This secret must match your Velocity proxy configuration exactly!</Warning>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Proxy Protocol">
+    <ParamField path="proxies.proxy-protocol" type="boolean" default="false">
+      Enable HAProxy PROXY protocol support.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Performance
+
+<AccordionGroup>
+  <Accordion title="Chunk System">
+    <ParamField path="chunk-system.io-threads" type="integer" default="-1">
+      Number of I/O threads for chunk operations. -1 uses the default calculated value.
+      
+      <Tip>Let Paper auto-configure this unless you have specific performance requirements.</Tip>
+    </ParamField>
+
+    <ParamField path="chunk-system.worker-threads" type="integer" default="-1">
+      Number of worker threads for chunk processing. -1 uses the default calculated value.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Player Auto Save">
+    <ParamField path="player-auto-save.rate" type="integer" default="-1">
+      How often (in ticks) player data should be saved. -1 uses Minecraft's default (6000 ticks/5 minutes).
+    </ParamField>
+
+    <ParamField path="player-auto-save.max-per-tick" type="integer" default="-1">
+      Maximum number of players to save per tick. Automatically calculated if set to -1.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Console
+
+<Accordion title="Console Settings">
+  <ParamField path="console.enable-brigadier-highlighting" type="boolean" default="true">
+    Enable syntax highlighting in the console for commands.
+  </ParamField>
+
+  <ParamField path="console.enable-brigadier-completions" type="boolean" default="true">
+    Enable tab completions in the console using Brigadier.
+  </ParamField>
+
+  <ParamField path="console.has-all-permissions" type="boolean" default="false">
+    Whether the console should have all permissions by default.
+  </ParamField>
+</Accordion>
+
+### Spam Limiter
+
+<Accordion title="Packet Rate Limiting">
+  <ParamField path="spam-limiter.tab-spam-increment" type="integer" default="1">
+    Amount to increment spam counter for tab completion requests.
+  </ParamField>
+
+  <ParamField path="spam-limiter.tab-spam-limit" type="integer" default="500">
+    Maximum tab completion spam counter before action is taken.
+  </ParamField>
+
+  <ParamField path="spam-limiter.recipe-spam-increment" type="integer" default="1">
+    Amount to increment spam counter for recipe requests.
+  </ParamField>
+
+  <ParamField path="spam-limiter.recipe-spam-limit" type="integer" default="20">
+    Maximum recipe spam counter before action is taken.
+  </ParamField>
+
+  <ParamField path="spam-limiter.incoming-packet-threshold" type="integer" default="300">
+    Maximum incoming packet rate before throttling. Set to -1 to disable.
+  </ParamField>
+</Accordion>
+
+### Commands
+
+<Accordion title="Command Settings">
+  <ParamField path="commands.suggest-player-names-when-null-tab-completions" type="boolean" default="true">
+    Suggest online player names when a command has no tab completions.
+  </ParamField>
+
+  <ParamField path="commands.time-command-affects-all-worlds" type="boolean" default="false">
+    Whether the `/time` command changes time in all worlds or just the executor's world.
+  </ParamField>
+
+  <ParamField path="commands.ride-command-allow-player-as-vehicle" type="boolean" default="false">
+    Allow mounting entities to a player in the vanilla `/ride` command.
+  </ParamField>
+</Accordion>
+
+### Item Validation
+
+<AccordionGroup>
+  <Accordion title="Item Text Limits">
+    <ParamField path="item-validation.display-name" type="integer" default="8192">
+      Maximum character length for item display names.
+    </ParamField>
+
+    <ParamField path="item-validation.lore-line" type="integer" default="8192">
+      Maximum character length for each line of item lore.
+    </ParamField>
+
+    <ParamField path="item-validation.book.title" type="integer" default="8192">
+      Maximum character length for book titles.
+    </ParamField>
+
+    <ParamField path="item-validation.book.author" type="integer" default="8192">
+      Maximum character length for book authors.
+    </ParamField>
+
+    <ParamField path="item-validation.book.page" type="integer" default="16384">
+      Maximum character length for book pages.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Book Limits">
+    <ParamField path="item-validation.book-size.page-max" type="integer" default="2560">
+      Maximum number of pages in a book. Set to -1 to disable.
+    </ParamField>
+
+    <ParamField path="item-validation.book-size.total-multiplier" type="double" default="0.98">
+      Multiplier for total book size validation.
+    </ParamField>
+
+    <ParamField path="item-validation.resolve-selectors-in-books" type="boolean" default="false">
+      Whether to resolve entity selectors in book text.
+      
+      <Warning>Enabling this can have security implications!</Warning>
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Watchdog
+
+<Accordion title="Watchdog Settings">
+  <ParamField path="watchdog.early-warning-every" type="integer" default="5000">
+    Interval in milliseconds between watchdog early warnings.
+  </ParamField>
+
+  <ParamField path="watchdog.early-warning-delay" type="integer" default="10000">
+    Delay in milliseconds before the watchdog starts issuing warnings.
+  </ParamField>
+</Accordion>
+
+### Miscellaneous
+
+<AccordionGroup>
+  <Accordion title="Spark Profiler">
+    <ParamField path="spark.enabled" type="boolean" default="true">
+      Enable the built-in Spark profiler.
+    </ParamField>
+
+    <ParamField path="spark.enable-immediately" type="boolean" default="false">
+      Enable Spark immediately on server startup.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Collisions">
+    <ParamField path="collisions.enable-player-collisions" type="boolean" default="true">
+      Enable player-to-player collisions.
+    </ParamField>
+
+    <ParamField path="collisions.send-full-pos-for-hard-colliding-entities" type="boolean" default="true">
+      Send full position updates for entities with hard collisions.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Scoreboards">
+    <ParamField path="scoreboards.track-plugin-scoreboards" type="boolean" default="false">
+      Track scoreboards created by plugins in `/paper dumpplugins`.
+    </ParamField>
+
+    <ParamField path="scoreboards.save-empty-scoreboard-teams" type="boolean" default="true">
+      Save scoreboard teams even when they have no members.
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Logging">
+    <ParamField path="logging.deobfuscate-stacktraces" type="boolean" default="true">
+      Deobfuscate stacktraces to readable Mojang mappings.
+      
+      <Tip>This makes error messages much easier to understand!</Tip>
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Miscellaneous Options">
+    <ParamField path="misc.region-file-cache-size" type="integer" default="256">
+      Number of region files to keep cached. Minimum value is 4.
+    </ParamField>
+
+    <ParamField path="misc.use-alternative-luck-formula" type="boolean" default="false">
+      Use an alternative luck formula. See https://luckformula.emc.gs for details.
+    </ParamField>
+
+    <ParamField path="misc.load-permissions-yml-before-plugins" type="boolean" default="true">
+      Load permissions.yml before plugins are enabled.
+    </ParamField>
+
+    <ParamField path="misc.enable-nether" type="boolean" default="true">
+      Whether the nether dimension is enabled and will be loaded.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Block Updates
+
+<Accordion title="Block Update Optimization">
+  <ParamField path="block-updates.disable-noteblock-updates" type="boolean" default="false">
+    Disable note block updates for redstone contraptions.
+  </ParamField>
+
+  <ParamField path="block-updates.disable-tripwire-updates" type="boolean" default="false">
+    Disable tripwire updates.
+  </ParamField>
+
+  <ParamField path="block-updates.disable-chorus-plant-updates" type="boolean" default="false">
+    Disable chorus plant updates.
+  </ParamField>
+
+  <ParamField path="block-updates.disable-mushroom-block-updates" type="boolean" default="false">
+    Disable mushroom block updates.
+  </ParamField>
+</Accordion>
+
+## Example Configuration
+
+```yaml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 75.0
+  player-max-chunk-load-rate: 100.0
+  player-max-chunk-generate-rate: -1.0
+
+proxies:
+  velocity:
+    enabled: true
+    online-mode: true
+    secret: "your-secret-here"
+
+chunk-system:
+  io-threads: -1
+  worker-threads: -1
+
+console:
+  enable-brigadier-highlighting: true
+  enable-brigadier-completions: true
+
+spark:
+  enabled: true
+
+logging:
+  deobfuscate-stacktraces: true
+```
+
+## Related Configuration
+
+<CardGroup cols={2}>
+  <Card title="World Configuration" icon="earth-americas" href="/administration/world-configuration">
+    Per-world specific settings
+  </Card>
+  <Card title="Performance Tuning" icon="gauge-high" href="/administration/performance-tuning">
+    Optimize your server performance
+  </Card>
+</CardGroup>
+
+<Note>
+Changes to `paper-global.yml` require a server restart or use the `/paper reload` command. Some settings may require a full restart.
+</Note>

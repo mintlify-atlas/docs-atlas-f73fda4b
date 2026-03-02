@@ -1,0 +1,142 @@
+---
+title: Getting Started
+description: How to start contributing to Paper
+---
+
+PaperMC welcomes contributions to our projects. This guide will help you get started with contributing to Paper, whether it's fixing bugs, adding new features, or improving existing functionality.
+
+## Requirements
+
+Before you begin, ensure you have the following software installed:
+
+<Steps>
+  <Step title="Install Git">
+    Install `git` using your package manager:
+    - Debian/Ubuntu/WSL: `apt install git`
+    - macOS/Linux: `homebrew install git`
+  </Step>
+
+  <Step title="Install Java 21 JDK">
+    Paper requires JDK 21 to build. We recommend [Adoptium](https://adoptium.net/) builds for most operating systems.
+
+    <Note>
+      Paper uses Gradle's [Toolchains](https://docs.gradle.org/current/userguide/toolchains.html) feature, allowing you to build with only JRE 17 or later installed. Gradle will automatically provision JDK 21 for compilation if needed.
+    </Note>
+  </Step>
+</Steps>
+
+### Docker Setup
+
+If you're compiling with Docker, use Adoptium's `eclipse-temurin` images:
+
+```bash
+docker run -it -v "$(pwd)":/data --rm eclipse-temurin:21.0.5_11-jdk bash
+```
+
+Verify the Java version:
+
+```bash
+javac -version
+# Output: javac 21.0.5
+```
+
+## Use a Personal Fork
+
+<Warning>
+  **Always use a personal fork, not an organization fork.** Paper routinely modifies PRs for quick rebases or minor fixes. Organization repositories prevent Paper from making these modifications, which slows down the review process.
+</Warning>
+
+## Initial Setup
+
+<Steps>
+  <Step title="Fork the Repository">
+    Create a personal fork of the Paper repository on GitHub.
+  </Step>
+
+  <Step title="Clone Your Fork">
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/Paper.git
+    cd Paper
+    ```
+  </Step>
+
+  <Step title="Apply Patches">
+    Apply the existing patches to set up your development environment:
+
+    ```bash
+    ./gradlew applyPatches
+    ```
+
+    <Info>
+      On Windows, remove the `./` from the beginning of `gradlew` commands: `gradlew applyPatches`
+    </Info>
+  </Step>
+
+  <Step title="Navigate to Your Working Directory">
+    - For server changes: `cd paper-server`
+    - For API changes: `cd paper-api`
+
+    <Note>
+      Only changes made in `paper-server/src/minecraft` require working with the patch system.
+    </Note>
+  </Step>
+</Steps>
+
+## Understanding the Patch System
+
+Unlike the API and its implementation, modifications to Minecraft source files are done through patches. These patches are split into three different sets:
+
+- **`sources`**: Per-file patches to Minecraft classes
+- **`resources`**: Per-file patches to Minecraft data files  
+- **`features`**: Larger feature patches that modify multiple Minecraft classes
+
+<Info>
+  The `paper-server/src/minecraft` directory is not a traditional git repository. Its initial commits are the decompiled and deobfuscated Minecraft source files. Per-file patches are applied on top as a single large commit, followed by individual feature-patch commits.
+</Info>
+
+## Understanding Git
+
+Since the entire patch structure is based on git, a basic understanding is required. New to git? Check out the [official Git tutorial](https://git-scm.com/docs/gittutorial).
+
+## Platform-Specific Notes
+
+### Windows Users
+
+<Warning>
+  Patching and building on Windows is significantly slower than on Unix-based systems. For the best experience, use WSL 2 (Windows Subsystem for Linux).
+</Warning>
+
+WSL 2 is available in Windows 10 v2004 (build 19041) or higher. Check your version by running `winver` in the run window (Windows key + R).
+
+**Setting up WSL 2:**
+
+1. Follow the [official WSL installation guide](https://learn.microsoft.com/en-us/windows/wsl/install)
+2. Install Ubuntu from the Microsoft Store
+3. Install required tools:
+   ```bash
+   sudo apt-get update && sudo apt-get install git -y
+   ```
+4. Clone the repository and work within WSL
+
+<Warning>
+  Do not use the `/mnt/` directory in WSL! Instead, work within the WSL filesystem (`~/`) and [mount WSL directories in Windows File Explorer](https://learn.microsoft.com/en-us/windows/wsl/filesystems#view-your-current-directory-in-windows-file-explorer).
+</Warning>
+
+## IntelliJ IDEA Tips
+
+For the best development experience with IntelliJ IDEA:
+
+1. **Disable automatic sync** under `Settings > Appearance & Behavior > System Settings`:
+   - Disable `Sync external changes: Periodically when the IDE is inactive (experimental)`
+   - This prevents the IDE from attempting to reindex files while patches are applying
+
+2. **Disable project reopening** (optional):
+   - Disable `Reopen projects on startup` to avoid freeze loops
+
+## Next Steps
+
+Now that you have your development environment set up, you're ready to start making changes:
+
+- Learn about [creating and modifying patches](/contributing/patching)
+- Review the [code formatting guidelines](/contributing/formatting)
+- Understand the [pull request process](/contributing/pull-requests)

@@ -1,0 +1,302 @@
+---
+title: Quick Start
+description: Get your Paper server up and running in minutes
+---
+
+This quick start guide will help you set up a Paper Minecraft server from scratch and get it running as quickly as possible.
+
+## Prerequisites
+
+<Note>
+  Before starting, make sure you have **Java 21** installed on your system. You can verify this by running `java -version` in your terminal.
+</Note>
+
+## Quick Setup
+
+<Steps>
+  <Step title="Download Paper">
+    Download the latest Paper build from [papermc.io/downloads/paper](https://papermc.io/downloads/paper).
+
+    Choose your desired Minecraft version and download the Paperclip jar file.
+  </Step>
+
+  <Step title="Create and configure your server directory">
+    Create a new directory for your server and place the Paper jar inside:
+
+    <CodeGroup>
+    ```bash Linux/macOS
+    mkdir paper-server && cd paper-server
+    # Move your downloaded jar here
+    mv ~/Downloads/paper-*.jar server.jar
+    ```
+
+    ```bash Windows (PowerShell)
+    mkdir paper-server; cd paper-server
+    # Move your downloaded jar here
+    move $env:USERPROFILE\Downloads\paper-*.jar server.jar
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Run the initial setup">
+    Start the server to generate configuration files:
+
+    ```bash
+    java -Xmx2G -Xms2G -jar server.jar --nogui
+    ```
+
+    The server will create files and stop automatically. This is expected behavior.
+  </Step>
+
+  <Step title="Accept the EULA">
+    Edit the `eula.txt` file and change `eula=false` to `eula=true`:
+
+    ```txt eula.txt
+    eula=true
+    ```
+
+    <Warning>
+      By setting this to true, you agree to Mojang's [EULA](https://aka.ms/MinecraftEULA).
+    </Warning>
+  </Step>
+
+  <Step title="Start your server">
+    Run the server again:
+
+    ```bash
+    java -Xmx2G -Xms2G -jar server.jar --nogui
+    ```
+
+    Your server is now running! Wait for the "Done" message indicating the server has started successfully.
+  </Step>
+</Steps>
+
+## Create a Startup Script
+
+Instead of typing the Java command every time, create a startup script:
+
+<CodeGroup>
+```bash start.sh (Linux/macOS)
+#!/bin/bash
+java -Xms2G -Xmx4G -jar server.jar --nogui
+```
+
+```batch start.bat (Windows)
+@echo off
+java -Xms2G -Xmx4G -jar server.jar --nogui
+pause
+```
+
+```powershell start.ps1 (Windows PowerShell)
+java -Xms2G -Xmx4G -jar server.jar --nogui
+Read-Host -Prompt "Press Enter to exit"
+```
+</CodeGroup>
+
+<Tip>
+  Make the script executable on Linux/macOS with: `chmod +x start.sh`
+</Tip>
+
+### Recommended JVM Flags
+
+For better performance, use these optimized JVM flags:
+
+```bash start.sh
+#!/bin/bash
+java -Xms4G -Xmx4G \
+  -XX:+UseG1GC \
+  -XX:+ParallelRefProcEnabled \
+  -XX:MaxGCPauseMillis=200 \
+  -XX:+UnlockExperimentalVMOptions \
+  -XX:+DisableExplicitGC \
+  -XX:G1HeapRegionSize=8M \
+  -XX:G1NewSizePercent=30 \
+  -XX:G1MaxNewSizePercent=40 \
+  -XX:G1HeapWastePercent=5 \
+  -XX:G1MixedGCCountTarget=4 \
+  -XX:G1MixedGCLiveThresholdPercent=90 \
+  -XX:G1RSetUpdatingPauseTimePercent=5 \
+  -XX:SurvivorRatio=32 \
+  -XX:+PerfDisableSharedMem \
+  -XX:MaxTenuringThreshold=1 \
+  -jar server.jar --nogui
+```
+
+<Note>
+  Adjust the `-Xms` and `-Xmx` values based on your available RAM. These should typically be set to the same value to prevent heap resizing.
+</Note>
+
+## Directory Structure
+
+After running Paper, your server directory will look like this:
+
+```
+paper-server/
+├── server.jar                  # The Paper executable
+├── eula.txt                    # EULA acceptance file
+├── server.properties           # Main server configuration
+├── bukkit.yml                  # Bukkit configuration
+├── spigot.yml                  # Spigot configuration
+├── config/
+│   ├── paper-global.yml       # Paper global configuration
+│   └── paper-world-defaults.yml # Paper world defaults
+├── commands.yml                # Command configuration
+├── permissions.yml             # Permissions configuration
+├── help.yml                    # Help topics configuration
+├── plugins/                    # Plugin directory
+├── world/                      # Default world files
+├── world_nether/              # Nether world files
+├── world_the_end/             # End world files
+└── logs/                      # Server logs
+```
+
+## Connecting to Your Server
+
+### Local Connection
+
+If you're testing locally, connect using:
+
+```
+localhost
+```
+
+or
+
+```
+127.0.0.1
+```
+
+### Remote Connection
+
+For others to connect, they'll need:
+
+1. Your public IP address
+2. The server port (default: 25565)
+
+<Warning>
+  If running from home, you'll need to:
+  - Configure port forwarding on your router (port 25565)
+  - Ensure your firewall allows the connection
+  - Consider security implications of exposing your server
+</Warning>
+
+## Basic Server Management
+
+### Console Commands
+
+Once your server is running, you can use these commands in the console:
+
+- `stop` - Safely stop the server
+- `restart` - Restart the server (requires a startup script)
+- `whitelist add <player>` - Add a player to the whitelist
+- `op <player>` - Give a player operator permissions
+- `say <message>` - Broadcast a message to all players
+- `list` - Show online players
+
+### Making Yourself an Operator
+
+To give yourself admin permissions:
+
+```
+op YourUsername
+```
+
+### Basic Configuration
+
+Edit `server.properties` to configure:
+
+```properties server.properties
+# Server network settings
+server-port=25565
+server-ip=
+
+# Gameplay settings
+difficulty=normal
+gamemode=survival
+max-players=20
+
+# World settings
+level-name=world
+level-seed=
+
+# Performance
+view-distance=10
+simulation-distance=10
+
+# Security
+online-mode=true
+white-list=false
+enforce-whitelist=false
+```
+
+<Tip>
+  Learn more about all available configuration options in the [Configuration](/getting-started/configuration) guide.
+</Tip>
+
+## Installing Plugins
+
+Paper is compatible with Bukkit, Spigot, and Paper plugins:
+
+<Steps>
+  <Step title="Download a plugin">
+    Download a `.jar` plugin file from trusted sources like:
+    - [Hangar](https://hangar.papermc.io/) (official Paper plugin repository)
+    - [SpigotMC](https://www.spigotmc.org/resources/)
+    - [Modrinth](https://modrinth.com/)
+  </Step>
+
+  <Step title="Place in plugins folder">
+    Move the plugin jar file to the `plugins/` directory in your server folder.
+  </Step>
+
+  <Step title="Restart or reload">
+    Either restart your server or use the command:
+    
+    ```
+    /reload confirm
+    ```
+
+    <Warning>
+      Using `/reload` can cause issues with some plugins. Restarting the server is the safer option.
+    </Warning>
+  </Step>
+</Steps>
+
+## Next Steps
+
+Now that your server is running:
+
+- Explore [Configuration](/getting-started/configuration) to customize your server
+- Visit [Hangar](https://hangar.papermc.io/) to find plugins
+- Read the full documentation at [docs.papermc.io](https://docs.papermc.io)
+- Join the [Paper Discord](https://discord.gg/papermc) for support
+
+## Troubleshooting
+
+### Server won't start
+
+- Verify Java 21 is installed: `java -version`
+- Check that `eula.txt` is set to `true`
+- Ensure port 25565 isn't already in use
+- Check the `logs/latest.log` file for errors
+
+### Out of memory errors
+
+Increase the `-Xmx` value in your startup command:
+
+```bash
+java -Xms4G -Xmx4G -jar server.jar --nogui
+```
+
+### Players can't connect
+
+- Verify the server is running (check console)
+- Check firewall settings
+- Verify port forwarding is configured correctly
+- Ensure `online-mode` is set correctly in `server.properties`
+
+## Getting Help
+
+- [Paper Forums](https://forums.papermc.io/)
+- [Discord Community](https://discord.gg/papermc)
+- [Official Documentation](https://docs.papermc.io)

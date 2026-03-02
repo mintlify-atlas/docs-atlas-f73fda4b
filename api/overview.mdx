@@ -1,0 +1,183 @@
+---
+title: 'API Overview'
+description: 'Overview of the Paper API and Bukkit API for plugin development'
+---
+
+# API Overview
+
+Paper provides a comprehensive API for plugin development, combining the mature Bukkit API with extensive Paper-specific enhancements.
+
+## API Documentation
+
+The complete Paper API javadocs are available at:
+
+**[papermc.io/javadocs](https://papermc.io/javadocs/)**
+
+This includes both the Bukkit API and all Paper-specific additions.
+
+## API Structure
+
+Paper's API consists of two main components:
+
+<CardGroup cols={2}>
+  <Card title="Bukkit API" icon="cube" href="/api/bukkit-api">
+    The core Minecraft server API that Paper inherits and maintains
+  </Card>
+  <Card title="Paper API" icon="paper-plane" href="/api/paper-api">
+    Paper-specific enhancements, optimizations, and new features
+  </Card>
+</CardGroup>
+
+## Key API Components
+
+### Core APIs
+
+<CardGroup cols={2}>
+  <Card title="Events" icon="bolt" href="/api/events">
+    Event system for listening to and modifying game events
+  </Card>
+  <Card title="Entities" icon="dragon" href="/api/entities">
+    Entity management, customization, and AI control
+  </Card>
+  <Card title="World" icon="globe" href="/api/world">
+    World manipulation, chunk management, and environment control
+  </Card>
+  <Card title="Registry" icon="database" href="/api/registry">
+    Data-driven content and registry access
+  </Card>
+</CardGroup>
+
+### Additional APIs
+
+- **[Adventure](/api/adventure)** - Modern text components and chat API
+- **Commands** - Command registration and execution
+- **Configuration** - Plugin configuration management
+- **Permissions** - Permission system integration
+- **Scheduler** - Task scheduling and async operations
+
+## Maven Dependency
+
+Add Paper API to your project:
+
+<CodeGroup>
+```xml Maven
+<repository>
+    <id>papermc</id>
+    <url>https://repo.papermc.io/repository/maven-public/</url>
+</repository>
+
+<dependency>
+    <groupId>io.papermc.paper</groupId>
+    <artifactId>paper-api</artifactId>
+    <version>1.21.11-R0.1-SNAPSHOT</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+```kotlin Gradle (Kotlin DSL)
+repositories {
+    maven {
+        url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+```
+</CodeGroup>
+
+## API Stability
+
+<Note>
+  The Paper API follows semantic versioning. The API version is specified in your `paper-plugin.yml` file.
+</Note>
+
+### Breaking Changes
+
+Paper maintains API stability within major Minecraft versions. Breaking changes are:
+- Clearly documented in release notes
+- Deprecated before removal when possible
+- Only introduced in major version updates
+
+### Experimental APIs
+
+Some Paper APIs are marked as experimental:
+
+```java
+@ApiStatus.Experimental
+public interface SomeNewFeature {
+    // ...
+}
+```
+
+Experimental APIs may change or be removed in future versions.
+
+## Package Structure
+
+### Bukkit Packages
+- `org.bukkit.*` - Core Bukkit API
+- `org.bukkit.entity.*` - Entity types and management
+- `org.bukkit.event.*` - Event system
+- `org.bukkit.plugin.*` - Plugin management
+- `org.bukkit.command.*` - Command system
+
+### Paper Packages
+- `io.papermc.paper.event.*` - Paper-specific events
+- `io.papermc.paper.entity.*` - Entity enhancements
+- `io.papermc.paper.configuration.*` - Configuration system
+- `io.papermc.paper.registry.*` - Registry access
+- `io.papermc.paper.datapack.*` - Datapack management
+- `com.destroystokyo.paper.*` - Legacy Paper APIs
+
+### Adventure Packages
+- `net.kyori.adventure.text.*` - Text components
+- `net.kyori.adventure.audience.*` - Message recipients
+- `net.kyori.adventure.sound.*` - Sound playback
+
+## Getting Started
+
+1. **Add the dependency** to your build configuration
+2. **Create a plugin class** extending `JavaPlugin`
+3. **Create a paper-plugin.yml** with plugin metadata
+4. **Implement your features** using the API
+5. **Test with the test-plugin** module or on a server
+
+<Tip>
+  Check out the [Plugin Development Guide](/plugins/getting-started) for a complete tutorial.
+</Tip>
+
+## API Resources
+
+<CardGroup cols={2}>
+  <Card title="Javadocs" icon="book" href="https://papermc.io/javadocs/">
+    Complete API reference documentation
+  </Card>
+  <Card title="Paper Forums" icon="comments" href="https://forums.papermc.io/">
+    Community support and discussions
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.gg/papermc">
+    Real-time help and community
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/PaperMC/Paper">
+    Source code and issue tracking
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Bukkit API" href="/api/bukkit-api">
+    Learn about the core Bukkit API
+  </Card>
+  <Card title="Paper API" href="/api/paper-api">
+    Explore Paper-specific features
+  </Card>
+  <Card title="Events" href="/api/events">
+    Work with the event system
+  </Card>
+</CardGroup>

@@ -1,0 +1,593 @@
+---
+title: 'Events API'
+description: 'Complete reference for Paper event system and event handling'
+---
+
+# Events API
+
+Paper extends Bukkit's event system with numerous additional events and enhancements. Events allow plugins to listen to and modify game behavior.
+
+## Event Basics
+
+### Listening to Events
+
+```java
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+
+public class MyListener implements Listener {
+    
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        player.sendMessage("Welcome to the server!");
+    }
+}
+```
+
+### Registering Listeners
+
+```java
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        // Register listener
+        getServer().getPluginManager().registerEvents(new MyListener(), this);
+        
+        // Or use this shorthand
+        Bukkit.getPluginManager().registerEvents(new MyListener(), this);
+    }
+}
+```
+
+### Event Priority
+
+Control when your listener is called relative to other plugins:
+
+```java
+import org.bukkit.event.EventPriority;
+
+@EventHandler(priority = EventPriority.LOWEST)
+public void onEarliest(PlayerJoinEvent event) {
+    // Called first
+}
+
+@EventHandler(priority = EventPriority.LOW)
+public void onEarly(PlayerJoinEvent event) { }
+
+@EventHandler(priority = EventPriority.NORMAL)  // Default
+public void onNormal(PlayerJoinEvent event) { }
+
+@EventHandler(priority = EventPriority.HIGH)
+public void onLate(PlayerJoinEvent event) { }
+
+@EventHandler(priority = EventPriority.HIGHEST)
+public void onLatest(PlayerJoinEvent event) { }
+
+@EventHandler(priority = EventPriority.MONITOR)
+public void onMonitor(PlayerJoinEvent event) {
+    // Called last, should not modify event
+    // Used for logging/monitoring only
+}
+```
+
+<Note>
+  Use `MONITOR` priority only for observing events, never for modifying them.
+</Note>
+
+### Ignoring Cancelled Events
+
+```java
+@EventHandler(ignoreCancelled = true)
+public void onBlockBreak(BlockBreakEvent event) {
+    // Not called if event is cancelled by another plugin
+}
+```
+
+## Player Events
+
+### Join/Quit Events
+
+```java
+@EventHandler
+public void onJoin(PlayerJoinEvent event) {
+    Player player = event.getPlayer();
+    
+    // Customize join message
+    event.joinMessage(Component.text("Welcome " + player.getName()));
+    
+    // Or hide join message
+    event.joinMessage(null);
+}
+
+@EventHandler
+public void onQuit(PlayerQuitEvent event) {
+    Player player = event.getPlayer();
+    
+    // Customize quit message
+    event.quitMessage(Component.text(player.getName() + " left"));
+}
+```
+
+### Movement Events
+
+```java
+@EventHandler
+public void onMove(PlayerMoveEvent event) {
+    Location from = event.getFrom();
+    Location to = event.getTo();
+    
+    // Check if player changed block
+    if (from.getBlockX() != to.getBlockX() 
+        || from.getBlockY() != to.getBlockY() 
+        || from.getBlockZ() != to.getBlockZ()) {
+        // Player moved to different block
+    }
+    
+    // Cancel movement
+    event.setCancelled(true);
+    
+    // Or modify destination
+    event.setTo(newLocation);
+}
+```
+
+<Warning>
+  PlayerMoveEvent is called very frequently. Avoid heavy operations in this event.
+</Warning>
+
+### Interaction Events
+
+```java
+@EventHandler
+public void onInteract(PlayerInteractEvent event) {
+    Player player = event.getPlayer();
+    Action action = event.getAction();
+    Block block = event.getClickedBlock();
+    ItemStack item = event.getItem();
+    
+    if (action == Action.RIGHT_CLICK_BLOCK) {
+        if (block != null && block.getType() == Material.CHEST) {
+            event.setCancelled(true);
+            player.sendMessage("You cannot open this chest!");
+        }
+    }
+}
+
+@EventHandler
+public void onInteractEntity(PlayerInteractEntityEvent event) {
+    Player player = event.getPlayer();
+    Entity entity = event.getRightClicked();
+    
+    if (entity instanceof Villager) {
+        event.setCancelled(true);
+        player.sendMessage("Trading is disabled!");
+    }
+}
+```
+
+### Chat Events
+
+```java
+import io.papermc.paper.event.player.AsyncChatEvent;
+
+@EventHandler
+public void onChat(AsyncChatEvent event) {
+    Player player = event.getPlayer();
+    Component message = event.message();
+    
+    // Modify message
+    event.message(Component.text("[Chat] ").append(message));
+    
+    // Cancel message
+    event.setCancelled(true);
+    
+    // Custom recipients
+    event.viewers().clear();
+    event.viewers().addAll(Bukkit.getOnlinePlayers());
+}
+```
+
+<Note>
+  `AsyncChatEvent` is asynchronous. Be careful with thread safety!
+</Note>
+
+## Block Events
+
+### Block Break/Place
+
+```java
+@EventHandler
+public void onBlockBreak(BlockBreakEvent event) {
+    Player player = event.getPlayer();
+    Block block = event.getBlock();
+    
+    // Check permission
+    if (!player.hasPermission("myplugin.break." + block.getType())) {
+        event.setCancelled(true);
+        player.sendMessage("You cannot break this block!");
+        return;
+    }
+    
+    // Modify drops
+    event.setDropItems(false);
+    block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(Material.DIAMOND));
+    
+    // Modify experience
+    event.setExpToDrop(100);
+}
+
+@EventHandler
+public void onBlockPlace(BlockPlaceEvent event) {
+    Player player = event.getPlayer();
+    Block block = event.getBlock();
+    
+    // Cancel placement
+    if (block.getY() > 100) {
+        event.setCancelled(true);
+        player.sendMessage("Cannot place blocks above Y=100");
+    }
+}
+```
+
+### Block Growth
+
+```java
+@EventHandler
+public void onGrow(BlockGrowEvent event) {
+    Block block = event.getBlock();
+    
+    // Cancel growth in certain worlds
+    if (block.getWorld().getName().equals("lobby")) {
+        event.setCancelled(true);
+    }
+}
+
+@EventHandler
+public void onSpread(BlockSpreadEvent event) {
+    // Fire spread, grass spread, etc.
+    if (event.getSource().getType() == Material.FIRE) {
+        event.setCancelled(true);
+    }
+}
+```
+
+## Entity Events
+
+### Entity Damage
+
+```java
+@EventHandler
+public void onDamage(EntityDamageEvent event) {
+    Entity entity = event.getEntity();
+    double damage = event.getDamage();
+    EntityDamageEvent.DamageCause cause = event.getCause();
+    
+    // Cancel fall damage
+    if (cause == EntityDamageEvent.DamageCause.FALL) {
+        event.setCancelled(true);
+    }
+    
+    // Modify damage
+    event.setDamage(damage * 2);
+}
+
+@EventHandler
+public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+    Entity damager = event.getDamager();
+    Entity victim = event.getEntity();
+    
+    if (damager instanceof Player player) {
+        if (victim instanceof Player) {
+            // PvP damage
+            event.setCancelled(true);
+            player.sendMessage("PvP is disabled!");
+        }
+    }
+}
+```
+
+### Entity Death
+
+```java
+@EventHandler
+public void onDeath(EntityDeathEvent event) {
+    LivingEntity entity = event.getEntity();
+    Player killer = entity.getKiller();
+    
+    // Modify drops
+    event.getDrops().clear();
+    event.getDrops().add(new ItemStack(Material.DIAMOND, 5));
+    
+    // Modify experience
+    event.setDroppedExp(100);
+    
+    if (killer != null) {
+        killer.sendMessage("You killed a " + entity.getType());
+    }
+}
+
+@EventHandler
+public void onPlayerDeath(PlayerDeathEvent event) {
+    Player player = event.getPlayer();
+    
+    // Custom death message
+    event.deathMessage(Component.text(player.getName() + " died!"));
+    
+    // Keep inventory
+    event.setKeepInventory(true);
+    event.setKeepLevel(true);
+    event.getDrops().clear();
+}
+```
+
+### Entity Spawn
+
+```java
+@EventHandler
+public void onSpawn(EntitySpawnEvent event) {
+    Entity entity = event.getEntity();
+    
+    // Cancel zombie spawning
+    if (entity.getType() == EntityType.ZOMBIE) {
+        event.setCancelled(true);
+    }
+}
+
+@EventHandler
+public void onCreatureSpawn(CreatureSpawnEvent event) {
+    LivingEntity entity = event.getEntity();
+    CreatureSpawnEvent.SpawnReason reason = event.getSpawnReason();
+    
+    // Allow natural spawns only
+    if (reason != CreatureSpawnEvent.SpawnReason.NATURAL) {
+        event.setCancelled(true);
+    }
+}
+```
+
+## Inventory Events
+
+### Inventory Click
+
+```java
+@EventHandler
+public void onClick(InventoryClickEvent event) {
+    Player player = (Player) event.getWhoClicked();
+    Inventory inventory = event.getInventory();
+    ItemStack clicked = event.getCurrentItem();
+    int slot = event.getSlot();
+    ClickType clickType = event.getClick();
+    
+    // Cancel clicking in custom GUI
+    if (inventory.getHolder() instanceof MyCustomHolder) {
+        event.setCancelled(true);
+        
+        // Handle click
+        if (clicked != null && clicked.getType() == Material.DIAMOND) {
+            player.sendMessage("You clicked a diamond!");
+        }
+    }
+}
+```
+
+### Inventory Open/Close
+
+```java
+@EventHandler
+public void onOpen(InventoryOpenEvent event) {
+    Player player = (Player) event.getPlayer();
+    Inventory inventory = event.getInventory();
+    
+    // Cancel opening certain inventories
+    if (inventory.getType() == InventoryType.ENCHANTING) {
+        event.setCancelled(true);
+        player.sendMessage("Enchanting is disabled!");
+    }
+}
+
+@EventHandler
+public void onClose(InventoryCloseEvent event) {
+    Player player = (Player) event.getPlayer();
+    // Cleanup when GUI is closed
+}
+```
+
+## World Events
+
+### Chunk Events
+
+```java
+@EventHandler
+public void onChunkLoad(ChunkLoadEvent event) {
+    Chunk chunk = event.getChunk();
+    World world = chunk.getWorld();
+    
+    // Process newly loaded chunk
+}
+
+@EventHandler
+public void onChunkUnload(ChunkUnloadEvent event) {
+    Chunk chunk = event.getChunk();
+    
+    // Cancel unloading
+    // event.setCancelled(true);  // Not available in all events
+}
+```
+
+### Weather Events
+
+```java
+@EventHandler
+public void onWeatherChange(WeatherChangeEvent event) {
+    World world = event.getWorld();
+    boolean raining = event.toWeatherState();
+    
+    // Cancel rain
+    if (raining) {
+        event.setCancelled(true);
+    }
+}
+```
+
+## Paper-Specific Events
+
+Paper adds many additional events in the `io.papermc.paper.event` package:
+
+### Player Events
+
+```java
+import io.papermc.paper.event.player.*;
+
+@EventHandler
+public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+    String name = event.getName();
+    UUID uuid = event.getUniqueId();
+    InetAddress address = event.getAddress();
+    
+    // Async whitelist check, database lookup, etc.
+    if (!isWhitelisted(uuid)) {
+        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST,
+            Component.text("You are not whitelisted!"));
+    }
+}
+
+@EventHandler
+public void onPlayerItemFrameChange(PlayerItemFrameChangeEvent event) {
+    Player player = event.getPlayer();
+    ItemFrame frame = event.getItemFrame();
+    ItemStack item = event.getItemStack();
+    
+    // Cancel item frame interaction
+    event.setCancelled(true);
+}
+```
+
+### Entity Events
+
+```java
+import io.papermc.paper.event.entity.*;
+
+@EventHandler
+public void onEntityMoveEvent(EntityMoveEvent event) {
+    // More efficient than PlayerMoveEvent for entities
+    Entity entity = event.getEntity();
+    Location from = event.getFrom();
+    Location to = event.getTo();
+}
+```
+
+## Custom Events
+
+Create your own events:
+
+```java
+import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
+
+public class CustomEvent extends Event {
+    private static final HandlerList HANDLERS = new HandlerList();
+    private final Player player;
+    private String message;
+    
+    public CustomEvent(Player player, String message) {
+        this.player = player;
+        this.message = message;
+    }
+    
+    public Player getPlayer() {
+        return player;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public void setMessage(String message) {
+        this.message = message;
+    }
+    
+    @Override
+    public HandlerList getHandlers() {
+        return HANDLERS;
+    }
+    
+    public static HandlerList getHandlerList() {
+        return HANDLERS;
+    }
+}
+```
+
+### Calling Custom Events
+
+```java
+// Create and call event
+CustomEvent event = new CustomEvent(player, "Hello");
+Bukkit.getPluginManager().callEvent(event);
+
+// Check if modified
+String message = event.getMessage();
+```
+
+### Cancellable Events
+
+```java
+import org.bukkit.event.Cancellable;
+
+public class CancellableCustomEvent extends Event implements Cancellable {
+    private static final HandlerList HANDLERS = new HandlerList();
+    private boolean cancelled = false;
+    
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+    
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+    
+    @Override
+    public HandlerList getHandlers() {
+        return HANDLERS;
+    }
+    
+    public static HandlerList getHandlerList() {
+        return HANDLERS;
+    }
+}
+```
+
+## Event Best Practices
+
+<Tip>
+  Always check if an event is cancellable before calling `setCancelled()`.
+</Tip>
+
+<Warning>
+  Async events (like `AsyncChatEvent`, `AsyncPlayerPreLoginEvent`) run off the main thread. Do not access Bukkit API from async events!
+</Warning>
+
+<Note>
+  Use `@EventHandler(ignoreCancelled = true)` to avoid processing cancelled events unnecessarily.
+</Note>
+
+## Complete Event List
+
+For a complete list of all available events, see:
+- **[Paper Javadocs - Events](https://papermc.io/javadocs/)**
+- Bukkit: `org.bukkit.event.*`
+- Paper: `io.papermc.paper.event.*`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Plugin Development" href="/plugins/getting-started">
+    Build plugins with events
+  </Card>
+  <Card title="Entity API" href="/api/entities">
+    Work with entities
+  </Card>
+</CardGroup>

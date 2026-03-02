@@ -1,0 +1,345 @@
+---
+title: 'Paper Features'
+description: 'Comprehensive overview of Paper extensive feature set, APIs, and capabilities'
+---
+
+# Features
+
+Paper provides an extensive set of features, APIs, and optimizations that make it the most popular high-performance Minecraft server implementation.
+
+## Plugin API
+
+Paper extends the Bukkit and Spigot APIs with hundreds of additional features for plugin developers.
+
+### Event System
+
+Paper adds numerous events beyond what Bukkit and Spigot provide, giving you fine-grained control over server behavior.
+
+#### Available Event Categories
+
+<CardGroup cols={2}>
+  <Card title="Block Events" icon="cube">
+    AnvilDamagedEvent, BeaconEffectEvent, BlockDestroyEvent, TNTPrimeEvent, and more
+  </Card>
+  <Card title="Entity Events" icon="dragon">
+    CreeperIgniteEvent, EnderDragonFireballHitEvent, EndermanAttackPlayerEvent, and more
+  </Card>
+  <Card title="Player Events" icon="user">
+    Player connection, chat, command, inventory, and interaction events
+  </Card>
+  <Card title="World Events" icon="globe">
+    World generation, chunk loading, and environment events
+  </Card>
+</CardGroup>
+
+**Example Event Handler:**
+
+```java
+public class MyPlugin extends JavaPlugin implements Listener {
+    
+    @Override
+    public void onEnable() {
+        getServer().getPluginManager().registerEvents(this, this);
+    }
+    
+    @EventHandler
+    public void onCreeperIgnite(CreeperIgniteEvent event) {
+        // Cancel creeper explosions caused by fire
+        if (event.isFired()) {
+            event.setCancelled(true);
+        }
+    }
+}
+```
+
+### Adventure Text Components
+
+Paper uses the Adventure library for modern, component-based text formatting and chat.
+
+```java
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+
+// Create formatted text
+Component message = Component.text("Welcome to the server!")
+    .color(NamedTextColor.GOLD)
+    .decorate(TextDecoration.BOLD);
+
+player.sendMessage(message);
+
+// Rich text with multiple components
+Component complex = Component.text()
+    .append(Component.text("[Server] ", NamedTextColor.GRAY))
+    .append(Component.text("Click here", NamedTextColor.GREEN)
+        .clickEvent(ClickEvent.openUrl("https://example.com")))
+    .build();
+```
+
+<Tip>
+  Adventure provides MiniMessage for easy string-based text formatting with tags like `<red>`, `<bold>`, and `<click>`.
+</Tip>
+
+### Entity AI Customization
+
+Paper provides APIs to customize entity AI goals and behaviors.
+
+```java
+import com.destroystokyo.paper.entity.ai.Goal;
+import com.destroystokyo.paper.entity.ai.GoalKey;
+import com.destroystokyo.paper.entity.ai.GoalType;
+import org.bukkit.entity.Mob;
+
+// Access and modify entity goals
+Mob mob = (Mob) entity;
+Set<Goal<Mob>> goals = mob.getGoals(GoalType.TARGET);
+
+// Remove specific goals
+for (Goal<Mob> goal : goals) {
+    if (goal.getKey().getNamespacedKey().getKey().equals("target_player")) {
+        mob.removeGoal(goal.getKey());
+    }
+}
+```
+
+### Registry and Data-Driven Content
+
+Paper provides comprehensive access to Minecraft's registry system for biomes, items, enchantments, and more.
+
+**Available Registry Keys:**
+
+- **AttributeKeys** - Entity attributes
+- **BiomeKeys** - World biomes
+- **BlockTypeKeys** - Block types
+- **EnchantmentKeys** - Enchantments
+- **ItemTypeKeys** - Item types
+- **DamageTypeKeys** - Damage sources
+- **GameEventKeys** - Sculk sensor events
+- **And many more...**
+
+```java
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
+
+// Access enchantment registry
+Registry<Enchantment> enchantments = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.ENCHANTMENT);
+
+// Iterate through registered enchantments
+for (Enchantment enchantment : enchantments) {
+    // Process enchantment
+}
+```
+
+### Data Components
+
+Paper provides full access to Minecraft's data component system for items.
+
+```java
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import org.bukkit.inventory.ItemStack;
+
+// Work with item data components
+ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
+
+// Set custom name using data components
+item.setData(DataComponentTypes.CUSTOM_NAME, 
+    Component.text("Legendary Sword"));
+
+// Set lore
+item.setData(DataComponentTypes.LORE, List.of(
+    Component.text("A powerful weapon"),
+    Component.text("Forged in dragon fire")
+));
+```
+
+<Note>
+  Data components replace the legacy NBT system and provide type-safe access to item properties.
+</Note>
+
+## Configuration System
+
+Paper features a powerful configuration system with both global and per-world settings.
+
+### Global Configuration
+
+Settings that apply across all worlds are stored in `paper-global.yml`:
+
+```java
+import io.papermc.paper.configuration.GlobalConfiguration;
+
+// Access global configuration
+int maxPlayers = GlobalConfiguration.get().misc.maxNumOfPlayers;
+boolean useCache = GlobalConfiguration.get().chunkLoading.enableWorldGenCache;
+```
+
+### World-Specific Configuration
+
+Each world can have custom settings in `paper-world.yml`:
+
+```java
+import org.bukkit.World;
+
+// Access world-specific configuration
+World world = player.getWorld();
+int mobSpawnRange = world.paperConfig().entities.spawning.mobSpawnRange;
+boolean optimizeExplosions = world.paperConfig().misc.optimizeExplosions;
+```
+
+**Configuration Categories:**
+
+- **Entities** - Spawn limits, behavior, performance
+- **Chunks** - Loading, generation, caching
+- **Spawning** - Mob spawn rules and rates
+- **Collisions** - Entity collision settings
+- **Misc** - Various gameplay mechanics
+
+## Performance Optimizations
+
+Paper includes hundreds of performance improvements over vanilla Minecraft.
+
+### Chunk Loading Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Async Chunk Loading" icon="gauge-high">
+    Chunks load asynchronously to prevent server lag
+  </Card>
+  <Card title="Chunk Generation Cache" icon="database">
+    Caches world generation data for faster terrain generation
+  </Card>
+  <Card title="Incremental Saving" icon="floppy-disk">
+    Spreads chunk saves across ticks to prevent lag spikes
+  </Card>
+  <Card title="Smart Unloading" icon="trash">
+    Intelligently unloads unused chunks to save memory
+  </Card>
+</CardGroup>
+
+### Entity Optimizations
+
+- **Activation Range** - Entities outside player range update less frequently
+- **Smart Pathfinding** - Optimized pathfinding algorithms
+- **Entity Tracking** - Improved entity visibility calculations
+- **Spawn Limits** - Configurable per-world mob caps
+
+### Redstone Optimizations
+
+- **Fast Redstone Wire** - Significantly faster redstone wire updates
+- **Optimized Hoppers** - Improved hopper transfer logic
+- **Piston Optimization** - Faster piston extension and retraction
+
+<Info>
+  Many optimizations can be fine-tuned in `paper-world.yml` to balance performance with gameplay accuracy.
+</Info>
+
+## Patch System
+
+Paper uses a sophisticated patch system to modify Minecraft source code.
+
+### Patch Types
+
+<Steps>
+  <Step title="Per-File Patches (sources)">
+    Small, focused changes to individual Minecraft classes for bug fixes and minor features
+  </Step>
+  <Step title="Resource Patches">
+    Modifications to Minecraft data files like loot tables and recipes
+  </Step>
+  <Step title="Feature Patches">
+    Larger, self-contained features that modify multiple files and can be optionally dropped during updates
+  </Step>
+</Steps>
+
+**Benefits of the Patch System:**
+
+- **Maintainability** - Easy to update across Minecraft versions
+- **Transparency** - Every change is documented and reviewable
+- **Modularity** - Features can be isolated and tested independently
+
+```bash
+# Apply patches during development
+./gradlew applyPatches
+
+# Rebuild patches after making changes
+./gradlew rebuildPatches
+```
+
+## Developer Tools
+
+### Test Plugin Module
+
+Paper includes a built-in test plugin module for rapid API development:
+
+```bash
+# Run a development server with the test plugin
+./gradlew runDev
+```
+
+### Maven Local Publishing
+
+Publish Paper API to your local Maven repository for plugin development:
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+### Gradle Tasks
+
+```bash
+# View all available tasks
+./gradlew tasks
+
+# Compile the full server jar
+./gradlew createMojmapBundlerJar
+
+# Print current Minecraft version
+./gradlew printMinecraftVersion
+```
+
+## Advanced Features
+
+### Brigadier Command System
+
+Paper exposes Minecraft's Brigadier command system for advanced command creation:
+
+- **AsyncPlayerSendCommandsEvent** - Customize command suggestions
+- **AsyncPlayerSendSuggestionsEvent** - Modify tab completion
+- **CommandRegisteredEvent** - React to command registration
+
+### Threaded Regions (Folia)
+
+Paper supports regionized multithreading through the Folia project for massive performance gains on large servers.
+
+### Timings and Profiling
+
+Built-in performance profiling tools:
+
+```bash
+# In-game or console
+/timings on
+/timings paste
+```
+
+<Tip>
+  Use `/timings` to generate detailed performance reports showing where server time is being spent.
+</Tip>
+
+## Security Features
+
+- **Secure Command Execution** - Protection against command injection
+- **Player Connection Security** - Packet validation and rate limiting
+- **Ban System** - Enhanced player and IP ban management
+- **Permission Checks** - Comprehensive permission validation
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Compare Paper" icon="scale-balanced" href="/comparison">
+    See how Paper compares to vanilla and other server software
+  </Card>
+  <Card title="API Documentation" icon="book" href="https://papermc.io/javadocs/">
+    Explore the complete Paper API reference
+  </Card>
+</CardGroup>

@@ -1,0 +1,447 @@
+---
+title: Plugin Configuration
+description: Learn how to create and manage configuration files in Paper plugins
+---
+
+Paper plugins use YAML configuration files to store settings. The `JavaPlugin` class provides built-in methods for working with a default `config.yml` file.
+
+## Default Configuration
+
+The default configuration file is `config.yml` located in your plugin's data folder.
+
+### Configuration Methods
+
+From `JavaPlugin.java`, the configuration methods:
+
+```java
+public FileConfiguration getConfig()
+public void reloadConfig()
+public void saveConfig()
+public void saveDefaultConfig()
+public void saveResource(String resourcePath, boolean replace)
+```
+
+## Creating a Default Configuration
+
+<Steps>
+  <Step title="Create config.yml in resources">
+    Create a `config.yml` file in `src/main/resources/`:
+
+    ```yaml
+    # Plugin settings
+    enable-feature: true
+    max-players: 100
+    welcome-message: "Welcome to the server!"
+    
+    # Database settings
+    database:
+      host: localhost
+      port: 3306
+      name: minecraft
+      username: root
+      password: ""
+    
+    # List of blocked items
+    blocked-items:
+      - TNT
+      - BEDROCK
+      - COMMAND_BLOCK
+    ```
+  </Step>
+
+  <Step title="Load configuration in plugin">
+    Load the configuration in your plugin's `onEnable()` method:
+
+    ```java
+    @Override
+    public void onEnable() {
+        // Copy default config if it doesn't exist
+        saveDefaultConfig();
+        
+        // Access configuration values
+        boolean featureEnabled = getConfig().getBoolean("enable-feature");
+        int maxPlayers = getConfig().getInt("max-players");
+        String welcomeMessage = getConfig().getString("welcome-message");
+        
+        getLogger().info("Feature enabled: " + featureEnabled);
+    }
+    ```
+
+    <Note>
+      `saveDefaultConfig()` only creates the file if it doesn't exist. It won't overwrite existing configurations.
+    </Note>
+  </Step>
+</Steps>
+
+## Reading Configuration Values
+
+### Basic Values
+
+```java
+FileConfiguration config = getConfig();
+
+// String
+String message = config.getString("welcome-message");
+String messageWithDefault = config.getString("missing-key", "Default value");
+
+// Boolean
+boolean enabled = config.getBoolean("enable-feature");
+
+// Integer
+int maxPlayers = config.getInt("max-players");
+
+// Double
+double multiplier = config.getDouble("damage-multiplier");
+
+// Long
+long timestamp = config.getLong("last-backup");
+```
+
+### Lists
+
+```java
+// String list
+List<String> blockedItems = config.getStringList("blocked-items");
+
+// Integer list
+List<Integer> allowedLevels = config.getIntegerList("allowed-levels");
+
+// Generic list
+List<?> items = config.getList("items");
+```
+
+### Nested Values (Configuration Sections)
+
+```java
+// Access nested values with dot notation
+String host = config.getString("database.host");
+int port = config.getInt("database.port");
+
+// Or get the entire section
+ConfigurationSection dbSection = config.getConfigurationSection("database");
+if (dbSection != null) {
+    String host = dbSection.getString("host");
+    int port = dbSection.getInt("port");
+    String dbName = dbSection.getString("name");
+}
+```
+
+### Check if Key Exists
+
+```java
+if (config.contains("welcome-message")) {
+    String message = config.getString("welcome-message");
+}
+
+// Check with type
+if (config.isString("welcome-message")) {
+    // Value exists and is a string
+}
+
+if (config.isInt("max-players")) {
+    // Value exists and is an integer
+}
+```
+
+## Writing Configuration Values
+
+### Setting Values
+
+```java
+FileConfiguration config = getConfig();
+
+// Set basic values
+config.set("enable-feature", true);
+config.set("max-players", 100);
+config.set("welcome-message", "Hello!");
+
+// Set nested values
+config.set("database.host", "localhost");
+config.set("database.port", 3306);
+
+// Set lists
+config.set("blocked-items", List.of("TNT", "BEDROCK"));
+
+// Save to file
+saveConfig();
+```
+
+### Creating Sections
+
+```java
+FileConfiguration config = getConfig();
+
+// Create a new section
+ConfigurationSection section = config.createSection("new-section");
+section.set("key1", "value1");
+section.set("key2", 42);
+
+saveConfig();
+```
+
+## Reloading Configuration
+
+Reload the configuration from disk:
+
+```java
+@Override
+public boolean onCommand(CommandSender sender, Command command, 
+                        String label, String[] args) {
+    if (command.getName().equalsIgnoreCase("reload")) {
+        reloadConfig();  // Reloads config.yml from disk
+        sender.sendMessage("Configuration reloaded!");
+        return true;
+    }
+    return false;
+}
+```
+
+From `JavaPlugin.java:171-180`:
+
+```java
+public void reloadConfig() {
+    newConfig = YamlConfiguration.loadConfiguration(configFile);
+
+    final InputStream defConfigStream = getResource("config.yml");
+    if (defConfigStream == null) {
+        return;
+    }
+
+    newConfig.setDefaults(YamlConfiguration.loadConfiguration(
+        new InputStreamReader(defConfigStream, StandardCharsets.UTF_8)));
+}
+```
+
+## Custom Configuration Files
+
+Create additional configuration files beyond the default `config.yml`:
+
+```java
+public class MyPlugin extends JavaPlugin {
+    private FileConfiguration messagesConfig;
+    private File messagesFile;
+
+    @Override
+    public void onEnable() {
+        // Load default config
+        saveDefaultConfig();
+        
+        // Load custom config
+        loadMessagesConfig();
+    }
+
+    private void loadMessagesConfig() {
+        messagesFile = new File(getDataFolder(), "messages.yml");
+        
+        // Create if doesn't exist
+        if (!messagesFile.exists()) {
+            saveResource("messages.yml", false);
+        }
+        
+        messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+    }
+
+    public FileConfiguration getMessagesConfig() {
+        if (messagesConfig == null) {
+            loadMessagesConfig();
+        }
+        return messagesConfig;
+    }
+
+    public void saveMessagesConfig() {
+        if (messagesConfig == null || messagesFile == null) {
+            return;
+        }
+        try {
+            messagesConfig.save(messagesFile);
+        } catch (IOException e) {
+            getLogger().severe("Could not save messages.yml: " + e.getMessage());
+        }
+    }
+
+    public void reloadMessagesConfig() {
+        messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+    }
+}
+```
+
+### Using Custom Configurations
+
+```java
+// Read from custom config
+String joinMessage = getMessagesConfig().getString("join-message");
+
+// Write to custom config
+getMessagesConfig().set("quit-message", "Goodbye!");
+saveMessagesConfig();
+
+// Reload custom config
+reloadMessagesConfig();
+```
+
+## Saving Resources
+
+Extract files from your plugin JAR to the data folder:
+
+```java
+// Save resource from JAR to plugin folder
+saveResource("config.yml", false);  // Don't replace if exists
+saveResource("messages.yml", true); // Replace if exists
+saveResource("data/items.yml", false);  // Create in subdirectory
+```
+
+From `JavaPlugin.java:199-234`:
+
+```java
+public void saveResource(String resourcePath, boolean replace) {
+    if (resourcePath == null || resourcePath.equals("")) {
+        throw new IllegalArgumentException("ResourcePath cannot be null or empty");
+    }
+
+    resourcePath = resourcePath.replace('\\', '/');
+    InputStream in = getResource(resourcePath);
+    if (in == null) {
+        throw new IllegalArgumentException(
+            "The embedded resource '" + resourcePath + "' cannot be found in " + file);
+    }
+
+    File outFile = new File(dataFolder, resourcePath);
+    // ... copies the file ...
+}
+```
+
+## Configuration Patterns
+
+### Wrapper Class Pattern
+
+Create a class to manage configuration:
+
+```java
+public class Config {
+    private final FileConfiguration config;
+    
+    public Config(JavaPlugin plugin) {
+        plugin.saveDefaultConfig();
+        this.config = plugin.getConfig();
+    }
+    
+    public boolean isFeatureEnabled() {
+        return config.getBoolean("enable-feature", true);
+    }
+    
+    public int getMaxPlayers() {
+        return config.getInt("max-players", 100);
+    }
+    
+    public String getWelcomeMessage() {
+        return config.getString("welcome-message", "Welcome!");
+    }
+    
+    public DatabaseConfig getDatabase() {
+        ConfigurationSection section = config.getConfigurationSection("database");
+        if (section == null) {
+            throw new IllegalStateException("Database configuration missing");
+        }
+        return new DatabaseConfig(
+            section.getString("host"),
+            section.getInt("port"),
+            section.getString("name"),
+            section.getString("username"),
+            section.getString("password")
+        );
+    }
+}
+
+record DatabaseConfig(String host, int port, String name, 
+                     String username, String password) {}
+```
+
+Usage:
+
+```java
+public class MyPlugin extends JavaPlugin {
+    private Config config;
+    
+    @Override
+    public void onEnable() {
+        this.config = new Config(this);
+        
+        if (config.isFeatureEnabled()) {
+            getLogger().info(config.getWelcomeMessage());
+        }
+    }
+}
+```
+
+## Data Folder
+
+The plugin's data folder is automatically created:
+
+```java
+File dataFolder = getDataFolder();
+// Returns: plugins/PluginName/
+
+if (!dataFolder.exists()) {
+    dataFolder.mkdirs();  // Create if doesn't exist
+}
+
+// Create subdirectories
+File playerDataFolder = new File(dataFolder, "playerdata");
+if (!playerDataFolder.exists()) {
+    playerDataFolder.mkdirs();
+}
+```
+
+From `JavaPlugin.java:84-86`:
+
+```java
+public final File getDataFolder() {
+    return dataFolder;
+}
+```
+
+## Best Practices
+
+1. **Provide defaults**:
+   ```java
+   String value = config.getString("key", "default-value");
+   ```
+
+2. **Validate configuration**:
+   ```java
+   int maxPlayers = config.getInt("max-players", 100);
+   if (maxPlayers < 1 || maxPlayers > 1000) {
+       getLogger().warning("Invalid max-players, using default");
+       maxPlayers = 100;
+   }
+   ```
+
+3. **Use `saveDefaultConfig()` carefully**:
+   ```java
+   // Only creates if doesn't exist - won't overwrite
+   saveDefaultConfig();
+   ```
+
+4. **Cache configuration values**:
+   ```java
+   // Don't do this repeatedly:
+   if (getConfig().getBoolean("feature")) { ... }
+   
+   // Do this instead:
+   boolean featureEnabled = getConfig().getBoolean("feature");
+   if (featureEnabled) { ... }
+   ```
+
+5. **Handle missing sections**:
+   ```java
+   ConfigurationSection section = config.getConfigurationSection("database");
+   if (section == null) {
+       getLogger().severe("Database configuration missing!");
+       getServer().getPluginManager().disablePlugin(this);
+       return;
+   }
+   ```
+
+<Tip>
+  Consider using a configuration wrapper class to provide type-safe access to configuration values and centralize default values.
+</Tip>

@@ -1,0 +1,500 @@
+---
+title: Network Optimization
+description: Configure network settings and packet handling for optimal server performance
+---
+
+Network performance directly affects player experience through latency, bandwidth usage, and packet processing. Paper provides extensive network optimizations and configuration options.
+
+## Chunk Send Rate Limiting
+
+Paper limits how quickly chunks are sent to players to prevent network congestion and client lag.
+
+**File**: `config/paper-global.yml`
+
+```yaml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 75.0
+```
+
+### Configuration
+
+| Value | Use Case | Effect |
+|-------|----------|--------|
+| `75.0` | Default - balanced | Good for most servers |
+| `50.0` | Limited bandwidth | Reduces network usage |
+| `100.0` | High-speed connections | Faster chunk loading |
+| `-1.0` | Unlimited | No rate limiting |
+
+<Tip>
+For servers with gigabit connections and players on fast internet, increase to 100-150 for smoother teleportation and flight.
+</Tip>
+
+<Warning>
+Unlimited chunk send rate (`-1`) can overwhelm clients with slow connections or cause network buffer buildup.
+</Warning>
+
+## Auto-Configure Send Distance
+
+**File**: `config/paper-global.yml`
+
+```yaml
+chunk-loading-advanced:
+  auto-config-send-distance: true
+```
+
+When enabled, Paper matches the chunk send radius to each client's configured view distance (if lower than the server's).
+
+**Example**:
+- Server view distance: 10 chunks
+- Player A's client: 8 chunks
+- Player B's client: 12 chunks
+
+With `auto-config-send-distance: true`:
+- Player A receives 8 chunks (saves bandwidth)
+- Player B receives 10 chunks (server maximum)
+
+<Note>
+This significantly reduces bandwidth usage without affecting player experience, as clients with low view distance can't render additional chunks anyway.
+</Note>
+
+## Packet Rate Limiting
+
+Paper includes packet rate limiting to prevent packet spam exploits and reduce processing overhead.
+
+**File**: `config/paper-global.yml`
+
+```yaml
+packet-limiter:
+  kick-message: '<red>Exceeded packet rate limit!'
+  all-packets:
+    interval: 7.0
+    max-packet-rate: 500.0
+    action: KICK
+  overrides:
+    ServerboundPlaceRecipePacket:
+      interval: 4.0
+      max-packet-rate: 5.0
+      action: DROP
+```
+
+### Global Packet Limiting
+
+```yaml
+all-packets:
+  interval: 7.0           # Measurement window in seconds
+  max-packet-rate: 500.0  # Maximum packets per second
+  action: KICK            # Action when exceeded: KICK or DROP
+```
+
+- **interval**: Time window for rate measurement
+- **max-packet-rate**: Maximum packets allowed in the interval
+- **action**: 
+  - `KICK`: Disconnect the player
+  - `DROP`: Silently drop excess packets
+
+<Accordion title="Understanding Packet Rate Calculation">
+With `interval: 7.0` and `max-packet-rate: 500.0`:
+
+The player can send up to 500 packets in a 7-second window, averaging ~71 packets/second.
+
+If exceeded, the configured action is taken.
+</Accordion>
+
+### Per-Packet Type Overrides
+
+Configure specific packet types differently:
+
+```yaml
+overides:
+  ServerboundPlaceRecipePacket:  # Recipe book clicks
+    interval: 4.0
+    max-packet-rate: 5.0
+    action: DROP
+```
+
+Common packets to limit:
+
+```yaml
+overides:
+  ServerboundPlaceRecipePacket:
+    interval: 4.0
+    max-packet-rate: 5.0
+    action: DROP
+  ServerboundPlayerCommandPacket:  # Sneak/sprint packets
+    interval: 2.0
+    max-packet-rate: 100.0
+    action: DROP
+```
+
+<Tip>
+Use `DROP` for non-critical packets to avoid kicking players experiencing network issues. Use `KICK` for potential exploit packets.
+</Tip>
+
+## Spam Limiters
+
+**File**: `config/paper-global.yml`
+
+```yaml
+spam-limiter:
+  tab-spam-increment: 1
+  tab-spam-limit: 500
+  recipe-spam-increment: 1
+  recipe-spam-limit: 20
+  incoming-packet-threshold: 300
+```
+
+### Tab-Complete Spam
+
+```yaml
+tab-spam-increment: 1
+tab-spam-limit: 500
+```
+
+Limits tab-completion requests (e.g., typing commands).
+
+- **increment**: Violation points added per request
+- **limit**: Maximum points before action taken
+
+### Recipe Spam
+
+```yaml
+recipe-spam-increment: 1
+recipe-spam-limit: 20
+```
+
+Limits recipe book interactions.
+
+### Incoming Packet Threshold
+
+```yaml
+incoming-packet-threshold: 300
+```
+
+Kick players exceeding this many packets per second.
+
+- **Default**: `300`
+- **Disabled**: Set to `-1`
+
+<Warning>
+Setting too low can kick legitimate players during intensive actions (e.g., inventory sorting). Keep at 300 or higher.
+</Warning>
+
+## Network Compression
+
+**File**: `config/paper-global.yml`
+
+```yaml
+misc:
+  compression-level: default  # 6 in vanilla
+```
+
+### Compression Level
+
+Controls network packet compression (zlib).
+
+| Level | CPU Usage | Bandwidth | Use Case |
+|-------|-----------|-----------|----------|
+| `-1` | Disabled | Highest | LAN/localhost only |
+| `1-3` | Low | High | Fast CPU, limited bandwidth |
+| `4-6` | Medium | Medium | Default - balanced |
+| `7-9` | High | Low | Slow connections, powerful CPU |
+
+<Tip>
+For servers on localhost or LAN, disable compression (`-1`) to reduce CPU usage. For internet servers with limited bandwidth, use 6-7.
+</Tip>
+
+**Configuration**:
+
+```yaml
+misc:
+  compression-level: 6  # Vanilla default
+```
+
+Or let Paper auto-configure:
+
+```yaml
+misc:
+  compression-level: default
+```
+
+### Region File Compression
+
+**File**: `config/paper-global.yml`
+
+```yaml
+unsupported-settings:
+  compression-format: ZLIB  # ZLIB, GZIP, LZ4, or NONE
+```
+
+<Warning>
+Changing compression format is an unsupported setting. Backup your world before changing. Existing chunks remain in their original format until resaved.
+</Warning>
+
+| Format | Speed | Compression Ratio | CPU Usage |
+|--------|-------|-------------------|----------|
+| NONE | Fastest | 1:1 (none) | Lowest |
+| LZ4 | Fast | ~2:1 | Low |
+| ZLIB | Medium | ~3:1 | Medium |
+| GZIP | Slow | ~3:1 | High |
+
+## Entity Tracking and Network Updates
+
+### Entity Tracking Range
+
+Controls the distance at which entity position updates are sent to clients.
+
+**File**: `config/spigot.yml`
+
+```yaml
+world-settings:
+  default:
+    entity-tracking-range:
+      players: 128
+      animals: 96
+      monsters: 96
+      misc: 96
+      display: 128
+      other: 64
+```
+
+Reducing tracking ranges decreases network bandwidth:
+
+**Bandwidth optimization example**:
+
+```yaml
+entity-tracking-range:
+  players: 96   # Reduced from 128
+  animals: 64   # Reduced from 96
+  monsters: 80  # Slightly reduced
+  misc: 64
+  display: 96
+  other: 48
+```
+
+<Note>
+Players won't see entities beyond tracking range, which may affect gameplay (e.g., not seeing distant mobs or players).
+</Note>
+
+### Full Position for Hard-Colliding Entities
+
+**File**: `config/paper-global.yml`
+
+```yaml
+collisions:
+  send-full-pos-for-hard-colliding-entities: true
+```
+
+Sends full position updates for entities involved in collisions.
+
+- **Enabled**: More accurate collisions, slightly higher bandwidth
+- **Disabled**: Saves bandwidth, may cause collision issues
+
+<Tip>
+Keep enabled unless bandwidth is extremely limited.
+</Tip>
+
+## Player Connection Limits
+
+**File**: `config/paper-global.yml`
+
+```yaml
+misc:
+  max-joins-per-tick: 5
+```
+
+Limits how many players can join per tick, preventing join spam lag.
+
+- **Default**: `5` players per tick
+- **High traffic**: Increase to `10-20`
+- **DDoS protection**: Reduce to `1-2`
+
+## Proxy Configuration
+
+### BungeeCord
+
+**File**: `config/paper-global.yml`
+
+```yaml
+proxies:
+  bungee-cord:
+    online-mode: true
+```
+
+**File**: `spigot.yml`
+
+```yaml
+settings:
+  bungeecord: true
+```
+
+<Warning>
+Never enable BungeeCord mode without a properly configured firewall. Exposed servers with BungeeCord enabled allow player UUID spoofing.
+</Warning>
+
+### Velocity
+
+**File**: `config/paper-global.yml`
+
+```yaml
+proxies:
+  velocity:
+    enabled: true
+    online-mode: true
+    secret: 'your-secret-key-here'
+```
+
+Or use environment variable:
+
+```bash
+export PAPER_VELOCITY_SECRET='your-secret-key-here'
+```
+
+<Tip>
+Velocity is recommended over BungeeCord for better performance and modern features.
+</Tip>
+
+### HAProxy / Proxy Protocol
+
+```yaml
+proxies:
+  proxy-protocol: true
+```
+
+Enable when using HAProxy or other proxy protocol-compatible proxies.
+
+## Network Performance Monitoring
+
+### Monitor Network Usage
+
+Use system tools to monitor bandwidth:
+
+```bash
+# Linux
+iftop -i eth0
+
+# Or use vnstat
+vnstat -l -i eth0
+```
+
+### Spark Profiling
+
+Profile packet handling:
+
+```bash
+/spark profiler start --thread "Server thread"
+# Wait 60 seconds
+/spark profiler stop
+```
+
+Look for:
+- `NetworkManager` - Packet processing
+- `PacketEncoder` / `PacketDecoder` - Packet serialization
+
+## Optimization Strategies
+
+### 1. High-Bandwidth Server
+
+```yaml
+# config/paper-global.yml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 150.0
+
+chunk-loading-advanced:
+  auto-config-send-distance: true
+
+misc:
+  compression-level: 4  # Lower compression, less CPU
+```
+
+### 2. Limited-Bandwidth Server
+
+```yaml
+# config/paper-global.yml
+chunk-loading-basic:
+  player-max-chunk-send-rate: 50.0
+
+misc:
+  compression-level: 7  # Higher compression
+
+# config/spigot.yml
+entity-tracking-range:
+  players: 96
+  animals: 64
+  monsters: 64
+  misc: 48
+```
+
+### 3. DDoS Protection
+
+```yaml
+# config/paper-global.yml
+misc:
+  max-joins-per-tick: 2
+
+packet-limiter:
+  all-packets:
+    max-packet-rate: 300.0
+    action: KICK
+
+spam-limiter:
+  incoming-packet-threshold: 200
+```
+
+## Troubleshooting
+
+### Slow Chunk Loading for Players
+
+**Symptoms**: Chunks load slowly during teleportation or flight
+
+**Solutions**:
+1. Increase `player-max-chunk-send-rate` to 100+
+2. Enable `auto-config-send-distance`
+3. Reduce network compression level
+
+### Players Getting Kicked
+
+**Symptoms**: "Exceeded packet rate limit" kicks
+
+**Solutions**:
+1. Increase `max-packet-rate` in packet-limiter
+2. Increase `incoming-packet-threshold`
+3. Change action from `KICK` to `DROP` for specific packets
+
+### High Bandwidth Usage
+
+**Symptoms**: Server using excessive bandwidth
+
+**Solutions**:
+1. Reduce entity tracking ranges
+2. Reduce `player-max-chunk-send-rate`
+3. Increase compression level to 6-7
+4. Enable `auto-config-send-distance`
+
+### Compression CPU Usage
+
+**Symptoms**: High CPU usage in packet encoding
+
+**Solutions**:
+1. Reduce compression level to 3-4
+2. Ensure you're not on localhost with compression enabled
+
+## Advanced: Client Interaction Validation
+
+**File**: `config/paper-global.yml`
+
+```yaml
+misc:
+  client-interaction-leniency-distance: default
+```
+
+Controls server-side validation leniency for player interactions.
+
+- **Default**: Use vanilla validation
+- **Higher values**: Allow interactions from slightly farther (helps with lag)
+- **Lower values**: Stricter anti-cheat
+
+## See Also
+
+- [Server Performance Overview](/optimization/server-performance)
+- [Chunk Loading Optimization](/optimization/chunk-loading)
+- [Entity Performance](/optimization/entity-performance)

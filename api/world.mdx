@@ -1,0 +1,496 @@
+---
+title: 'World API'
+description: 'World manipulation, chunk management, and environment control'
+---
+
+# World API
+
+Paper provides comprehensive APIs for world manipulation, chunk management, and environment control.
+
+## World Access
+
+### Getting Worlds
+
+```java
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+
+// Get world by name
+World world = Bukkit.getWorld("world");
+
+// Get all worlds
+List<World> worlds = Bukkit.getWorlds();
+
+// Get default world
+World defaultWorld = Bukkit.getWorlds().get(0);
+
+// From player
+World playerWorld = player.getWorld();
+```
+
+### Creating Worlds
+
+```java
+import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
+
+// Create world
+WorldCreator creator = new WorldCreator("my_world");
+creator.environment(World.Environment.NORMAL);
+creator.type(WorldType.NORMAL);
+creator.generateStructures(true);
+creator.seed(12345L);
+
+World newWorld = creator.createWorld();
+
+// Or use chaining
+World world = new WorldCreator("custom_world")
+    .environment(World.Environment.NETHER)
+    .type(WorldType.FLAT)
+    .generateStructures(false)
+    .createWorld();
+```
+
+## World Properties
+
+### Basic Properties
+
+```java
+// Name
+String name = world.getName();
+
+// Environment
+World.Environment env = world.getEnvironment();
+// NORMAL, NETHER, THE_END
+
+// Seed
+long seed = world.getSeed();
+
+// Difficulty
+Difficulty difficulty = world.getDifficulty();
+world.setDifficulty(Difficulty.HARD);
+
+// Hardcore
+boolean hardcore = world.isHardcore();
+world.setHardcore(true);
+```
+
+### Game Rules
+
+```java
+import org.bukkit.GameRule;
+
+// Get game rule
+Boolean keepInventory = world.getGameRuleValue(GameRule.KEEP_INVENTORY);
+Integer mobSpawnRadius = world.getGameRuleValue(GameRule.SPAWN_RADIUS);
+
+// Set game rule
+world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, true);
+
+// Common game rules
+world.setGameRule(GameRule.DO_FIRE_TICK, false);
+world.setGameRule(GameRule.DO_MOB_GRIEFING, false);
+world.setGameRule(GameRule.NATURAL_REGENERATION, true);
+world.setGameRule(GameRule.RANDOM_TICK_SPEED, 3);
+```
+
+### Time and Weather
+
+```java
+// Time
+long time = world.getTime(); // Ticks since world creation
+long fullTime = world.getFullTime();
+world.setTime(6000); // Noon (0 = sunrise, 6000 = noon, 12000 = sunset, 18000 = midnight)
+
+// Weather
+boolean storming = world.hasStorm();
+world.setStorm(true);
+
+boolean thundering = world.isThundering();
+world.setThundering(true);
+
+// Weather duration
+int weatherDuration = world.getWeatherDuration();
+world.setWeatherDuration(6000); // Ticks
+
+int thunderDuration = world.getThunderDuration();
+world.setThunderDuration(6000);
+
+// Clear weather
+world.setStorm(false);
+world.setThundering(false);
+```
+
+## Block Access
+
+### Getting and Setting Blocks
+
+```java
+import org.bukkit.block.Block;
+import org.bukkit.Material;
+
+// Get block
+Block block = world.getBlockAt(x, y, z);
+Block block = world.getBlockAt(location);
+
+// Block type
+Material type = block.getType();
+block.setType(Material.STONE);
+
+// Block data
+BlockData data = block.getBlockData();
+block.setBlockData(data);
+
+// Block state (for complex blocks)
+BlockState state = block.getState();
+if (state instanceof Chest chest) {
+    Inventory inv = chest.getInventory();
+    // Modify inventory
+    chest.update(); // Apply changes
+}
+```
+
+### Block Data
+
+```java
+// Create block data
+BlockData data = Bukkit.createBlockData(Material.OAK_STAIRS);
+
+// Directional blocks
+if (data instanceof Directional directional) {
+    directional.setFacing(BlockFace.NORTH);
+}
+
+// Stairs
+if (data instanceof Stairs stairs) {
+    stairs.setHalf(Bisected.Half.TOP);
+    stairs.setShape(Stairs.Shape.OUTER_LEFT);
+}
+
+// Doors
+if (data instanceof Door door) {
+    door.setOpen(true);
+    door.setHinge(Door.Hinge.RIGHT);
+}
+
+// Apply to block
+block.setBlockData(data);
+```
+
+### Highest Block
+
+```java
+import org.bukkit.HeightMap;
+
+// Get highest solid block
+Block highest = world.getHighestBlockAt(x, z);
+int y = world.getHighestBlockYAt(x, z);
+
+// Using heightmap
+int motionBlocking = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING);
+int worldSurface = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE);
+```
+
+## Chunk Management
+
+### Loading and Unloading
+
+```java
+import org.bukkit.Chunk;
+
+// Get chunk
+Chunk chunk = world.getChunkAt(x, z);
+Chunk chunk = world.getChunkAt(block);
+
+// Load chunk
+boolean loaded = chunk.load();
+chunk.load(true); // Generate if not exists
+
+// Check if loaded
+if (chunk.isLoaded()) {
+    // Chunk is loaded
+}
+
+// Unload chunk
+boolean unloaded = chunk.unload();
+chunk.unload(true); // Save before unloading
+
+// Force loaded
+chunk.setForceLoaded(true);
+boolean forceLoaded = chunk.isForceLoaded();
+
+// Get force loaded chunks
+Collection<Chunk> forceLoaded = world.getForceLoadedChunks();
+```
+
+### Async Chunk Loading
+
+```java
+import java.util.concurrent.CompletableFuture;
+
+// Load chunk asynchronously
+CompletableFuture<Chunk> future = world.getChunkAtAsync(x, z);
+future.thenAccept(chunk -> {
+    // Chunk is loaded
+    // This may not be on the main thread!
+});
+
+// Load and generate if needed
+world.getChunkAtAsync(x, z, true, true).thenAccept(chunk -> {
+    Bukkit.getScheduler().runTask(plugin, () -> {
+        // Switch to main thread for Bukkit API access
+        world.spawnEntity(chunk.getBlock(8, 64, 8).getLocation(), EntityType.ZOMBIE);
+    });
+});
+```
+
+### Chunk Snapshot
+
+```java
+// Get immutable chunk snapshot
+ChunkSnapshot snapshot = chunk.getChunkSnapshot();
+
+// Query snapshot (safe from any thread)
+Material type = snapshot.getBlockType(x, y, z);
+int light = snapshot.getBlockSkyLight(x, y, z);
+int emittedLight = snapshot.getBlockEmittedLight(x, y, z);
+Biome biome = snapshot.getBiome(x, y, z);
+```
+
+## Spawn Management
+
+### Spawn Location
+
+```java
+// Get spawn
+Location spawn = world.getSpawnLocation();
+
+// Set spawn
+world.setSpawnLocation(x, y, z);
+world.setSpawnLocation(location);
+```
+
+### Entity Spawning
+
+```java
+// Spawn entity
+Entity entity = world.spawnEntity(location, EntityType.ZOMBIE);
+
+// Spawn with configuration
+Zombie zombie = world.spawn(location, Zombie.class, z -> {
+    z.setBaby(true);
+    z.setCustomName("Baby Zombie");
+});
+
+// Natural spawn
+world.setSpawnFlags(true, true); // Monsters, animals
+boolean monstersAllowed = world.getAllowMonsters();
+boolean animalsAllowed = world.getAllowAnimals();
+```
+
+### Mob Spawning
+
+```java
+// Control spawning
+world.setMonsterSpawnLimit(70);
+world.setAnimalSpawnLimit(10);
+world.setWaterAnimalSpawnLimit(5);
+world.setWaterAmbientSpawnLimit(20);
+world.setAmbientSpawnLimit(15);
+
+// Get limits
+int monsterLimit = world.getMonsterSpawnLimit();
+```
+
+## Effects and Sounds
+
+### Playing Effects
+
+```java
+import org.bukkit.Effect;
+import org.bukkit.Particle;
+
+// Play effect
+world.playEffect(location, Effect.ENDER_SIGNAL, null);
+
+// Spawn particle
+world.spawnParticle(Particle.FLAME, location, 10); // 10 particles
+world.spawnParticle(Particle.CLOUD, location, 50, 1, 1, 1); // Spread
+
+// With data
+world.spawnParticle(Particle.BLOCK_DUST, location, 10, Material.DIRT.createBlockData());
+```
+
+### Playing Sounds
+
+```java
+import org.bukkit.Sound;
+import net.kyori.adventure.sound.Sound.Source;
+
+// Play sound
+world.playSound(location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
+// Play to specific player
+player.playSound(location, Sound.BLOCK_NOTE_BLOCK_HARP, Source.BLOCK, 1.0f, 1.0f);
+
+// Play custom sound
+world.playSound(location, "minecraft:entity.wither.spawn", SoundCategory.HOSTILE, 1.0f, 1.0f);
+```
+
+## World Borders
+
+```java
+import org.bukkit.WorldBorder;
+
+// Get world border
+WorldBorder border = world.getWorldBorder();
+
+// Size
+double size = border.getSize();
+border.setSize(1000.0); // 1000 blocks diameter
+
+// Animate size change
+border.setSize(500.0, 60); // Shrink to 500 over 60 seconds
+
+// Center
+Location center = border.getCenter();
+border.setCenter(0, 0);
+
+// Damage
+border.setDamageAmount(0.2);
+border.setDamageBuffer(5.0);
+
+// Warning
+border.setWarningDistance(5);
+border.setWarningTime(15);
+```
+
+## Paper World Configuration
+
+Access Paper's per-world configuration:
+
+```java
+import io.papermc.paper.configuration.WorldConfiguration;
+
+// Get world config
+WorldConfiguration config = world.paperConfig();
+
+// Spawn limits
+int monsterLimit = config.spawnLimits.monster;
+int animalLimit = config.spawnLimits.animal;
+
+// Anti-Xray
+boolean antiXrayEnabled = config.anticheat.antiXray.enabled;
+
+// Chunk settings
+int autoSaveInterval = config.chunks.autoSaveInterval.value();
+```
+
+## View and Simulation Distance
+
+```java
+// View distance (chunks sent to clients)
+int viewDistance = world.getViewDistance();
+world.setViewDistance(10);
+
+// Simulation distance (chunks with entity ticking)
+int simDistance = world.getSimulationDistance();
+world.setSimulationDistance(8);
+
+// No-tick view distance
+int noTickDistance = world.getNoTickViewDistance();
+world.setNoTickViewDistance(12);
+```
+
+## World Save
+
+```java
+// Save world
+world.save();
+
+// Auto-save
+world.setAutoSave(true);
+boolean autoSave = world.isAutoSave();
+```
+
+## World Unload
+
+```java
+// Unload world
+boolean unloaded = Bukkit.unloadWorld(world, true); // Save before unload
+
+// Check if world can be unloaded
+if (world.getPlayers().isEmpty()) {
+    Bukkit.unloadWorld(world, true);
+}
+```
+
+## Raids
+
+```java
+import org.bukkit.Raid;
+
+// Get raids
+List<Raid> raids = world.getRaids();
+
+// Get raid at location
+Raid raid = world.locateNearestRaid(location, 100);
+
+if (raid != null) {
+    // Raid properties
+    Location raidLocation = raid.getLocation();
+    int badOmensLevel = raid.getBadOmenLevel();
+    int totalWaves = raid.getTotalWaves();
+    int spawnedGroups = raid.getSpawnedGroups();
+    Raid.RaidStatus status = raid.getStatus();
+    
+    // Heroes
+    Set<UUID> heroes = raid.getHeroes();
+}
+```
+
+## Structure Location
+
+```java
+import org.bukkit.StructureType;
+import org.bukkit.generator.structure.Structure;
+
+// Locate structure
+Location stronghold = world.locateNearestStructure(
+    location,
+    StructureType.STRONGHOLD,
+    100,  // Radius in chunks
+    false // Find unexplored
+);
+
+if (stronghold != null) {
+    player.teleport(stronghold);
+}
+```
+
+## Best Practices
+
+<Tip>
+  Use async chunk loading for better performance when loading many chunks.
+</Tip>
+
+<Warning>
+  Always switch back to the main thread (using `Bukkit.getScheduler().runTask()`) after async operations before accessing most Bukkit APIs.
+</Warning>
+
+<Note>
+  Chunk force-loading keeps chunks loaded even when no players are nearby. Use sparingly to avoid memory issues.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Entity API" href="/api/entities">
+    Work with entities
+  </Card>
+  <Card title="Events API" href="/api/events">
+    Handle world events
+  </Card>
+</CardGroup>

@@ -1,0 +1,366 @@
+---
+title: 'Paper API'
+description: 'Paper-specific API enhancements, optimizations, and features'
+---
+
+# Paper API
+
+Paper extends the Bukkit API with numerous enhancements, optimizations, and new features. This page covers Paper-specific APIs in the `io.papermc.paper` and `com.destroystokyo.paper` packages.
+
+## Configuration API
+
+### Global Configuration
+
+```java
+import io.papermc.paper.configuration.GlobalConfiguration;
+
+// Access global configuration
+GlobalConfiguration config = GlobalConfiguration.get();
+
+// Chunk loading settings
+int maxChunkSendRate = config.chunkLoading.playerMaxChunkSendRate;
+int maxChunkLoadRate = config.chunkLoading.playerMaxChunkLoadRate;
+
+// Proxy settings
+boolean velocityEnabled = config.proxies.velocity.enabled;
+String velocitySecret = config.proxies.velocity.secret;
+
+// Console settings
+boolean brigadierHighlighting = config.console.enableBrigadierHighlighting;
+```
+
+### World Configuration
+
+```java
+import io.papermc.paper.configuration.WorldConfiguration;
+
+// Access per-world configuration
+WorldConfiguration worldConfig = world.paperConfig();
+
+// Entity spawn limits
+int monsterLimit = worldConfig.spawnLimits.monster;
+int animalLimit = worldConfig.spawnLimits.animal;
+
+// Chunk system settings
+int ioThreads = worldConfig.chunkSystem.ioThreads;
+int workerThreads = worldConfig.chunkSystem.workerThreads;
+
+// Anti-Xray
+boolean antiXrayEnabled = worldConfig.anticheat.antiXray.enabled;
+```
+
+## Registry API
+
+Paper provides type-safe access to Minecraft registries:
+
+```java
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
+
+// Access a registry
+Registry<Enchantment> enchantments = RegistryAccess.registryAccess()
+    .getRegistry(RegistryKey.ENCHANTMENT);
+
+// Get enchantment by key
+Enchantment sharpness = enchantments.get(NamespacedKey.minecraft("sharpness"));
+
+// Iterate all enchantments
+for (Enchantment ench : enchantments) {
+    // Process enchantment
+}
+```
+
+### Registry Keys
+
+Paper provides constants for registry keys:
+
+```java
+import io.papermc.paper.registry.keys.EnchantmentKeys;
+import io.papermc.paper.registry.keys.ItemTypeKeys;
+import io.papermc.paper.registry.keys.BiomeKeys;
+
+// Type-safe registry access
+Enchantment sharpness = enchantments.get(EnchantmentKeys.SHARPNESS);
+Material diamond = Registry.MATERIAL.get(ItemTypeKeys.DIAMOND);
+Biome plains = Registry.BIOME.get(BiomeKeys.PLAINS);
+```
+
+## Entity API
+
+### Entity AI
+
+Customize mob AI behavior:
+
+```java
+import com.destroystokyo.paper.entity.ai.Goal;
+import com.destroystokyo.paper.entity.ai.GoalKey;
+import com.destroystokyo.paper.entity.ai.GoalType;
+import org.bukkit.entity.Mob;
+
+Mob mob = (Mob) entity;
+
+// Get AI goals
+Set<Goal<?>> goals = mob.getGoals(GoalType.TARGET);
+
+// Remove a goal
+GoalKey<?> targetKey = GoalKey.of(Zombie.class, NamespacedKey.minecraft("zombie_attack"));
+mob.removeGoal(targetKey);
+
+// Add custom goal
+Goal<Zombie> customGoal = /* custom implementation */;
+mob.addGoal(customGoal, 5); // Priority 5
+```
+
+### Entity Tracking
+
+```java
+import io.papermc.paper.entity.TeleportFlag;
+
+// Teleport with flags
+entity.teleport(location, 
+    TeleportFlag.EntityState.RETAIN_PASSENGERS,
+    TeleportFlag.EntityState.RETAIN_VEHICLE
+);
+
+// Get entity tracking range
+int range = entity.getTrackedPlayers().size();
+```
+
+## Datapack API
+
+Manage datapacks at runtime:
+
+```java
+import io.papermc.paper.datapack.Datapack;
+import io.papermc.paper.datapack.DatapackManager;
+
+DatapackManager manager = Bukkit.getDatapackManager();
+
+// Get all datapacks
+Collection<Datapack> packs = manager.getPacks();
+
+// Get enabled datapacks
+Collection<Datapack> enabled = manager.getEnabledPacks();
+
+// Enable/disable datapack
+Datapack pack = manager.getPack("my_datapack");
+if (pack != null) {
+    pack.setEnabled(true);
+}
+
+// Refresh datapacks
+manager.refreshPacks();
+```
+
+## Chunk System
+
+### Chunk Scheduling
+
+```java
+import io.papermc.paper.chunk.system.scheduling.ChunkLoadPriority;
+
+// Set chunk priority
+world.setChunkLoadPriority(chunkX, chunkZ, ChunkLoadPriority.URGENT);
+
+// Get chunk status
+Chunk.LoadLevel loadLevel = chunk.getLoadLevel();
+boolean entityTicking = loadLevel.isEntityTicking();
+```
+
+## Player API
+
+### Player Connection
+
+```java
+// Get ping
+int ping = player.getPing();
+
+// Get client brand
+String clientBrand = player.getClientBrandName();
+
+// Kick with reason
+player.kick(Component.text("Kicked for testing"), 
+    PlayerKickEvent.Cause.PLUGIN);
+```
+
+### Player Locale
+
+```java
+import java.util.Locale;
+
+// Get player locale
+Locale locale = player.locale();
+String language = locale.getLanguage(); // "en", "es", etc.
+```
+
+### View Distance
+
+```java
+// Per-player view distance
+int viewDistance = player.getViewDistance();
+player.setViewDistance(8);
+
+// Simulation distance
+int simDistance = player.getSimulationDistance();
+player.setSimulationDistance(6);
+```
+
+## Command API
+
+### Brigadier Integration
+
+Paper exposes Brigadier for command handling:
+
+```java
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
+        manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+            Commands commands = event.registrar();
+            // Register Brigadier commands
+        });
+    }
+}
+```
+
+## Adventure API Integration
+
+Paper fully integrates the Adventure API for modern text components. See [Adventure API](/api/adventure) for details.
+
+## Timings
+
+Paper provides advanced timing/profiling:
+
+```java
+import co.aikar.timings.Timing;
+import co.aikar.timings.Timings;
+
+// Create timing
+Timing timing = Timings.of(plugin, "My Operation");
+
+// Time operation
+timing.startTiming();
+try {
+    // Code to time
+} finally {
+    timing.stopTiming();
+}
+
+// Or use try-with-resources
+try (Timing ignored = timing.startTiming()) {
+    // Code to time
+}
+```
+
+<Note>
+  Timings is being replaced by the Spark profiler in newer versions.
+</Note>
+
+## Profile API
+
+Player profile management:
+
+```java
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
+
+// Create profile
+PlayerProfile profile = Bukkit.createProfile(uuid, "PlayerName");
+
+// Get properties
+Set<ProfileProperty> properties = profile.getProperties();
+
+// Get textures
+PlayerTextures textures = profile.getTextures();
+URL skinUrl = textures.getSkin();
+```
+
+## Ban API
+
+Enhanced ban management:
+
+```java
+import io.papermc.paper.ban.BanListType;
+import org.bukkit.BanList;
+
+// Get ban list
+BanList<PlayerProfile> bans = Bukkit.getBanList(BanListType.PROFILE);
+
+// Add ban
+bans.addBan(profile, "Reason", expiration, "Moderator");
+
+// Check if banned
+boolean banned = bans.isBanned(profile);
+```
+
+## Async Chunk API
+
+Load chunks asynchronously:
+
+```java
+import java.util.concurrent.CompletableFuture;
+
+// Load chunk async
+CompletableFuture<Chunk> future = world.getChunkAtAsync(x, z, true);
+future.thenAccept(chunk -> {
+    // Chunk is loaded
+});
+
+// Load chunk async with generation
+world.getChunkAtAsync(x, z, true, true).thenAccept(chunk -> {
+    // Chunk is loaded and generated if needed
+});
+```
+
+## Paper Events
+
+Paper provides many additional events. See the [Events API](/api/events) page for details.
+
+## Thread Safety
+
+<Warning>
+  Most Paper API methods are not thread-safe and must be called from the main server thread. Use `Bukkit.getScheduler().runTask()` to switch to the main thread from async contexts.
+</Warning>
+
+```java
+// Async operation
+CompletableFuture.supplyAsync(() -> {
+    // Database query, HTTP request, etc.
+    return result;
+}).thenAccept(result -> {
+    // Switch to main thread for Bukkit API access
+    Bukkit.getScheduler().runTask(plugin, () -> {
+        player.sendMessage("Result: " + result);
+    });
+});
+```
+
+## Javadocs
+
+Complete Paper API documentation:
+
+**[papermc.io/javadocs](https://papermc.io/javadocs/)**
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Events" href="/api/events">
+    Paper event system reference
+  </Card>
+  <Card title="Entities" href="/api/entities">
+    Entity API and customization
+  </Card>
+  <Card title="World API" href="/api/world">
+    World manipulation
+  </Card>
+  <Card title="Registry" href="/api/registry">
+    Registry access
+  </Card>
+</CardGroup>
